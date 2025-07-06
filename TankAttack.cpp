@@ -496,22 +496,22 @@ class Entity
 {
 public:
 	std::string ID;								// Entty type {Tank or Fort}
-	float pos[2], vel[2], acc[2];			// Position, Velocity, Acceleration  [Tank, Fort]
-	sf::FloatRect rect;						// SFML rect object [Tank. Fort]
-	float ang;								// Angle of entity [Tank, Fort]
-	float v_ang, a_ang;						// Angular velocity and acceeration [Tank, Fort]
-	int texWidth, texHeight;				// Dimensons of textures [Tank, Fort*]
-	float wander_time, max_wander_time;		// Wander timing [Tank, Fort]
-	float hp, max_hp;						// HitPoints [Tank, Fort]
-	float dam;								// Damage points [Tank, Fort]
-	float range;							// Range entity can attack [Tank, Fort]
-	bool ia, idle;							// (i)n(a)cation and idle state [Tank, Fort]
-	float targ_ang;							// target angle [Tank, Fort]
-	int team;								// Entity team [Tank, Fort]
-	sf::Color col, opp_col;							// Entity team colour [Fort]
+	float pos[2], vel[2], acc[2];				// Position, Velocity, Acceleration  [Tank, Fort]
+	sf::FloatRect rect;							// SFML rect object [Tank. Fort]
+	float ang;									// Angle of entity [Tank, Fort]
+	float v_ang, a_ang;							// Angular velocity and acceeration [Tank, Fort]
+	int texWidth, texHeight;					// Dimensons of textures [Tank, Fort*]
+	float wander_time, max_wander_time;			// Wander timing [Tank, Fort]
+	float hp, max_hp;							// HitPoints [Tank, Fort]
+	float dam;									// Damage points [Tank, Fort]
+	float range;								// Range entity can attack [Tank, Fort]
+	bool ia, idle;								// (i)n(a)cation and idle state [Tank, Fort]
+	float targ_ang;								// target angle [Tank, Fort]
+	int team;									// Entity team [Tank, Fort]
+	sf::Color col, opp_col;						// Entity team colour [Fort]
 
-	sf::Vector2f wander_pos;				// Wander target position [Tank]
-	sf::Vector2f target_pos;				// Target position
+	sf::Vector2f wander_pos;					// Wander target position [Tank]
+	sf::Vector2f target_pos;					// Target position
 	float max_laser_cooldown;
 	float laser_cooldown;
 	float max_ammo_supply;
