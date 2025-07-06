@@ -512,26 +512,26 @@ public:
 
 	sf::Vector2f wander_pos;					// Wander target position [Tank]
 	sf::Vector2f target_pos;					// Target position
-	float max_laser_cooldown;
-	float laser_cooldown;
-	float max_ammo_supply;
-	int ammo_supply;
-	bool no_ammo;
-	float max_ammo_supply_time;
-	float ammo_supply_timer;
+	float max_laser_cooldown;					// Maximum laser cooldown [Tank]
+	float laser_cooldown;						// Laser cooldown timer [Tank]
+	float max_ammo_supply;						// Maximum ammo supply [Tank]
+	int ammo_supply;							// Current ammo supply [Tank]
+	bool no_ammo;								// No ammo state [Tank]
+	float max_ammo_supply_time;					// Maximum ammo supply time [Tank]	
+	float ammo_supply_timer;					// Ammo supply timer [Tank]
 
-	Entity* ammo_Target; int ammo_Target_uID;
-	Entity* enemy;
-	Laser* last_bullet;
-	int last_bullet_team; std::string last_bullet_ID; Entity* last_bullet_sender;
-	int tilt_preference;
-	float lock_target_timer;
-	float max_lock_target_time;
+	Entity* ammo_Target; int ammo_Target_uID;	// Target for ammo supply [Tank]
+	Entity* enemy;								// Enemy entity [Tank, Fort]	
+	Laser* last_bullet;							// Last bullet fired by entity [Tank]
+	int last_bullet_team; std::string last_bullet_ID; Entity* last_bullet_sender;	// Last bullet sender [Tank]
+	int tilt_preference;						// Tilt preference for tank [Tank]
+	float lock_target_timer;					// Lock target timer [Tank]
+	float max_lock_target_time;					// Maximum lock target time [Tank]
 	
-	std::string enemyString;
-	int kill_count, kill_count_threshold;
-	int uniqueID;
-	int enemy_uID;
+	std::string enemyString;					// Enemy string for tank [Tank]
+	int kill_count, kill_count_threshold;		// Kill count and threshold for special tank [Tank]
+	int uniqueID;								// Unique ID for entity [Tank, Fort]
+	int enemy_uID;								// Unique ID of enemy entity [Tank, Fort]
 	
 	sf::Sprite entitySprite;
 	int chunk[2];
@@ -539,7 +539,7 @@ public:
 	float age, old_age;
 
 	// Fort Values
-	int gun_barrel[2];
+	int gun_barrel[2];							// Gun barrel length and width [Fort]
 	float max_target_time, target_time;
 	float max_flicker_time, flicker_vel, flicker_timer;
 	float max_Tank_spawn_time, Tank_spawn_timer;
