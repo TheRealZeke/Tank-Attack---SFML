@@ -112,18 +112,11 @@ void saveJSONData();
 
 sf::Vector2f scaleVector (sf::Vector2f &vector, float magnitude);
 float displacement(sf::Vector2f& vec_1, sf::Vector2f& vec_2);
-
 void saveGameState(const std::string& filename);
-
-
 std::string getDateString();
 std::string getTimeString();
-
-
 std::string OpenFileDialog(const char* filter = "All Files\0*.*\0", HWND owner = NULL);
-
 Entity* checkEntity(Entity* entity);
-
 std::vector<Tile*> getTileNeighbors(Tile& tile);
 
 
@@ -243,7 +236,7 @@ std::vector <Entity> EntityArr;
 std::vector <Laser> LaserArr;
 std::vector <Missle> MissleArr;
 std::vector <Particle> ParticleArr;
-std::vector <Tile> TileArr;
+std::vector <std::vector<Tile>> TileArr;
 std::vector <GameDisplayText> GameTextArr;
 std::vector <DeadTank> DeadTankArr;
 std::vector <Button> ButtonArr;
@@ -3809,9 +3802,11 @@ void handleEvents(sf::RenderWindow& myWindow)
 					if (EntityArr[i].ID == "fort") {  // Filter Out Tanks
 						if (EntityArr[i].collisionRect().contains({Mouse_Pos.x + Camera_Pos[0], Mouse_Pos.y + Camera_Pos[1]})) {  // Check for Click
 							fortClicked = true;
-							for (int j = 0; j < TileArr.size(); j++) {
-								if (TileArr[j].FortID == EntityArr[i].uniqueID) {
-									TileArr[j].flash(5, EntityArr[i].col, 64, 1);
+							for (auto& row_of_Tiles : TileArr) {
+								for (Tile& tile : row_of_Tiles) {
+									if (tile.FortID == EntityArr[i].uniqueID) {
+										tile.flash(5, EntityArr[i].col, 64, 1);
+									}
 								}
 							}
 						}
@@ -4203,24 +4198,30 @@ void RenderMinimap()
 		g_size.y = Tiles_Size * height_scale;
 
 		sf::VertexArray tileQuads(sf::Quads);
-		for (const auto& tile : TileArr) {
-			if (tile.team != -1) {
-				t_pos = tile.pos;
-				g_pos.x = t_pos.x * width_scale + MiniMapRect.left;
-				g_pos.y = t_pos.y * height_scale + MiniMapRect.top;
 
-				sf::Color c = tile.col;
-				float x = g_pos.x, y = g_pos.y, w = g_size.x, h = g_size.y - 1;
-				if (tile.border_tile)	{ c.a = tile.col.a * 2; }
-				else { 
-					c.a = (tile.col.a / 2) + (tile.col.a / 3) * tile.flicker_timer / 50;
-					//c.a = tile.col.a;
+
+		for (const auto& row_of_Tiles : TileArr) {
+			for (const auto& tile : row_of_Tiles) {
+				if (tile.team != -1) {
+					t_pos = tile.pos;	// Tile graphical position
+
+					g_pos.x = t_pos.x * width_scale + MiniMapRect.left;
+					g_pos.y = t_pos.y * height_scale + MiniMapRect.top;
+
+					sf::Color c = tile.col;
+					float x = g_pos.x, y = g_pos.y, tile_width = g_size.x, tile_height = g_size.y;		// Tile graphical position and size
+
+					if (tile.border_tile) { c.a = tile.col.a * 2; }
+					else {
+						c.a = (tile.col.a / 2) + (tile.col.a / 3) * tile.flicker_timer / 50;
+					}
+					tileQuads.append(sf::Vertex({ x,     y }, c));
+					tileQuads.append(sf::Vertex({ x + tile_width, y }, c));
+					tileQuads.append(sf::Vertex({ x + tile_width, y + tile_height }, c));
+					tileQuads.append(sf::Vertex({ x,     y + tile_height }, c));
 				}
-				tileQuads.append(sf::Vertex({ x,     y }, c));
-				tileQuads.append(sf::Vertex({ x + w, y }, c));
-				tileQuads.append(sf::Vertex({ x + w, y + h }, c));
-				tileQuads.append(sf::Vertex({ x,     y + h }, c));
 			}
+			
 		}
 		window.draw(tileQuads);
 	}
@@ -4701,9 +4702,11 @@ int getSpecialFortPop(int team)
 int getTerritory(int team)
 {
 	int num = 0;
-	for (int i = 0; i < TileArr.size(); i++) {
-		if (TileArr[i].team == team) {
-			num++;
+	for (auto& row_of_Tiles : TileArr) {
+		for (Tile& tile : row_of_Tiles) {
+			if (tile.team == team) {
+				num++;
+			}
 		}
 	}
 	return num;
@@ -4712,38 +4715,46 @@ int getTerritory(int team)
 void UpdateTiles() 
 {
 	if (eventLogging) { std::cout << "###== Updating Tiles...; GameTick: " << game_ticks << "  ==###" << std::endl; }
-	int size = TileArr.size();
+	int no_of_Tile_rows = TileArr.size();
+	int no_of_Tile_columns = TileArr[0].size();
 	for (int i = 0; i < numberOfTeams; i++) {
 		TeamTileNo[i] = 0;
 		TeamTilePerc[i] = 0;
 	}
 
-	for (int i = 0; i < size; i++) {
-		TileArr[i].update();
-		if (TileArr[i].team != -1) { TeamTileNo[TileArr[i].team] += 1; }
-
+	for (auto& row_of_Tiles : TileArr) {
+		for (Tile& tile : row_of_Tiles) {
+			tile.update();
+			if (tile.team != -1) { TeamTileNo[tile.team] += 1; }
+		}
 	}
 
 	for (int j = 0; j < TankDeathPositions.size(); j++) {
 		float shortest_dis = 1000000;
-		int closestTile_index, dis;
-		closestTile_index = -1;
-		for (int i = 0; i < size; i++) {
-			sf::Vector2f temp_pos = { TankDeathPositions[j][0], TankDeathPositions[j][1] };
-			sf::Vector2f temp2_pos = TileArr[i].pos;
-			dis = displacement(temp2_pos, temp_pos);
-			if (dis < shortest_dis) {
-				closestTile_index = i;
-				shortest_dis = dis;
+		std::array <int, 2> closestTile_index;
+		int dis;
+		closestTile_index = { -1,-1 };
+		for (int i = 0; i < no_of_Tile_rows; i++) {
+			for (int j = 0; j < no_of_Tile_columns; j++) {
+				if (TileArr[i][j].team == -1) { continue; }	// Skip tiles without a team
+				sf::Vector2f temp_pos = { TankDeathPositions[j][0], TankDeathPositions[j][1] };
+				sf::Vector2f temp2_pos = TileArr[i][j].pos;
+				dis = displacement(temp2_pos, temp_pos);
+				if (dis < shortest_dis) {
+					closestTile_index = { i,j };
+					shortest_dis = dis;
+				}
 			}
 		}
-		if (closestTile_index != -1) {
-			TileArr[closestTile_index].tank_deaths += 1;
+		if (closestTile_index[0] != -1) {
+			TileArr[closestTile_index[0]][closestTile_index[1]].tank_deaths += 1;
 		}
 	}
 
-	for (int i = 0; i < size; i++) {
-		TileArr[i].updateBorders();
+	for (auto& row_of_Tiles : TileArr) {
+		for (Tile& tile : row_of_Tiles) {
+			tile.updateBorders();
+		}
 	}
 
 	for (int i = 0; i < numberOfTeams; i++) {
@@ -4759,40 +4770,48 @@ void UpdateTiles()
 void InitTiles()
 {
 	TileArr.clear();
-	double XX = GAME_MAP_WIDTH;
-	double YY = GAME_MAP_HEIGHT;
-	double size = Tiles_Size;
-	int cx = 0; int cy = 0;
-	float gx = 0, gy = 0;
-	
+	double XX = GAME_MAP_WIDTH;		// Width of the game map
+	double YY = GAME_MAP_HEIGHT;	// Height of the game map
+	double size = Tiles_Size;		// Size of each tile
+	int cy = 0;						// Current row index
+	float gx = 0, gy = 0;			// Current tile map position
 
-	double x_fix = 1.2;
+	double x_fix = 1.2;				// x_fix is used to adjust the horizontal spacing of the tiles for hexagonal tiling
 
-	for (double y = -size; y < YY + size; y += size) {
-		cy++;
-		cx = 0;
+	// Calculate number of rows and columns
+	int num_rows = static_cast<int>((YY + size * 2) / size);
+	int num_cols = static_cast<int>((XX + size * 2 * x_fix) / (size * x_fix));
+
+	TileArr.resize(num_rows);
+
+	for (double y = -size; y < YY + size; y += size) {		// Loop through each row 
+		int cx = 0;		// Current column index
+		gy = y;			// Set the y-coordinate for the current row
+		std::vector<Tile> row_of_Tiles;		// Vector to hold tiles in the current row
+
 		for (double x = -size * x_fix; x < XX + (size * x_fix); x += (size * x_fix)) {
+			gx = (cy % 2 == 0) ? x - (size * x_fix / 4) : x + (size * x_fix / 4);		// Adjust x-coordinate for hexagonal tiling
+			row_of_Tiles.push_back(Tile{ sf::Vector2f{ gx, gy }, cx, cy });				// Create a new tile at the calculated position
 			cx++;
-			gy = y;
-			if (cy % 2 == 0) { gx = x - (size * x_fix / 4); }
-			else             { gx = x + (size * x_fix / 4); }
-			
-			
-			Tile newTile({gx, gy}, cx, cy);
-
-			TileArr.push_back(newTile);
 		}
+		TileArr.push_back(row_of_Tiles);		// Set the position of each tile	
+		cy++;
 	}
+
+	// Set neighbors for each tile
 	for (int i = 0; i < TileArr.size(); i++) {
-		TileArr[i].neighbors = getTileNeighbors(TileArr[i]);
+		for (int j = 0; j < TileArr[i].size(); j++) {
+			TileArr[i][j].neighbors = getTileNeighbors(TileArr[i][j]);
+		}
 	}
 }
 
+
 void DrawTiles()
 {
-	for (Tile &tile : TileArr) {
-		//TileArr[i].draw();
-		if (GameScreenRect.contains(tile.pos)) {
+	for (auto &row_of_tiles : TileArr) {
+		for (Tile& tile : row_of_tiles) {
+			if (!GameScreenRect.contains(tile.pos)) { continue; }	// Skip tiles outside the game screen
 			tile.draw();
 		}
 	}
@@ -5580,20 +5599,20 @@ Entity* checkEntity(Entity* entity) {
 }
 
 std::vector<Tile*> getTileNeighbors(Tile& tile) {
-	static const int even_offsets[6][2] = { {-1,-1}, {0,-1}, {1,0}, {0,1}, {-1,1}, {-1,0} };
-	static const int odd_offsets[6][2] = { {0,-1}, {1,-1}, {1,0}, {1,1}, {0,1}, {-1,0} };
+	static const int even_offsets[6][2] = { {-1,-1}, {0,-1}, {1,0}, {0,1}, {-1,1}, {-1,0} };	// Hexagon offsets for even rows
+	static const int odd_offsets[6][2] = { {0,-1}, {1,-1}, {1,0}, {1,1}, {0,1}, {-1,0} };		// Hexagon offsets for odd rows
 
 	std::vector<Tile*> neighbors;
 	const int (*offsets)[2] = (tile.grid_y % 2 == 0) ? even_offsets : odd_offsets;
 
+	int rows = static_cast<int>(TileArr.size());
 	for (int i = 0; i < 6; ++i) {
-		int nx = tile.grid_x + offsets[i][0];
-		int ny = tile.grid_y + offsets[i][1];
-		// Find the tile in TileArr with (nx, ny)
-		for (Tile& t : TileArr) {
-			if (t.grid_x == nx && t.grid_y == ny) {
-				neighbors.push_back(&t);
-				break;
+		int nx = tile.grid_x + offsets[i][0];		// Calculate neighbor's x-coordinate
+		int ny = tile.grid_y + offsets[i][1];		// Calculate neighbor's y-coordinate
+		if (ny >= 0 && ny < rows) {
+			int cols = static_cast<int>(TileArr[ny].size());	// Get number of columns in the array
+			if (nx >= 0 && nx < cols) {
+				neighbors.push_back(&TileArr[ny][nx]);
 			}
 		}
 	}
