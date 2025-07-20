@@ -28,8 +28,8 @@ using json = nlohmann::json;
 #include <SFML/Audio.hpp>
 // Local Library
 
-
-
+#include <algorithm>
+enum MapType { RANDOM, ONE_VS_ONE, ROUND_TABLE };
 
 
 
@@ -102,7 +102,7 @@ int getTerritory(int team);
 void updateStageColour();
 void UpdateTiles();
 void InitTiles();
-void DemoGame(int type = 0);
+void DemoGame(int type = -1);
 
 void updateWind();
 void loadGameButtons();
@@ -111,7 +111,7 @@ void saveJSONData();
 
 
 sf::Vector2f scaleVector (sf::Vector2f &vector, float magnitude);
-float displacement(sf::Vector2f& vec_1, sf::Vector2f& vec_2);
+float displacement(const sf::Vector2f& vec_1, const sf::Vector2f& vec_2);
 void saveGameState(const std::string& filename);
 std::string getDateString();
 std::string getTimeString();
@@ -3271,7 +3271,6 @@ int main()
 	std::cout << "Number of Teams: " << numberOfTeams << std::endl;
 	for (auto& arr : _jData_Teams["colors"]) {
 		colorArr.push_back({ arr[0], arr[1], arr[2] });
-		std::cout << arr[0] << "," << arr[1] << "," << arr[2] << std::endl;
 	}
 
 	for (int i = 0; i < numberOfTeams; i++) {
@@ -4966,7 +4965,7 @@ void DemoGame(int type)
 	DeadTankArr.clear();
 	ButtonArr.clear();
 
-	
+
 	// Clear Team Statistics
 	for (int i = 0; i < numberOfTeams; i++) {
 		Tanks_Killed[i] = 0;
@@ -4991,18 +4990,18 @@ void DemoGame(int type)
 	TanksLostArr.clear();
 	AverageTankAgeArr.clear();
 	TeamTerritoryArr.clear();
-	
 
-	
+
+
 	GAME_MAP_WIDTH = 2500; GAME_MAP_HEIGHT = 2500;
 	sf::FloatRect GameMapRect(0, 0, GAME_MAP_WIDTH, GAME_MAP_HEIGHT);
-	type = rand() % 5;
+	if (type == -1) { type = rand() % 6; }
 
 	int repeat_no, repeat_no_max;
 	repeat_no_max = 1'000;
 
 	// Adjust game Map Size
-	
+
 	if (rand() % 2 == 0) {
 		GAME_MAP_WIDTH = 3200; GAME_MAP_HEIGHT = 3200;
 		GameMapRect = { 0, 0, GAME_MAP_WIDTH, GAME_MAP_HEIGHT };
@@ -5015,27 +5014,35 @@ void DemoGame(int type)
 		GAME_MAP_WIDTH = 5000; GAME_MAP_HEIGHT = 5000;
 		GameMapRect = { 0, 0, GAME_MAP_WIDTH, GAME_MAP_HEIGHT };
 	}
-	
-	float forts_per_team = (rand() % 8) + 8;
-	if (GAME_MAP_WIDTH > 3200) { forts_per_team *= 1.5; }
-	if (GAME_MAP_WIDTH > 4000) { forts_per_team *= 1.25; }
+	if (rand() % 7 == 0) {
+		GAME_MAP_WIDTH = 8000; GAME_MAP_HEIGHT = 8000;
+		GameMapRect = { 0, 0, GAME_MAP_WIDTH, GAME_MAP_HEIGHT };
+	}
+
+	float forts_per_team = (rand() % 10) + 4;
+	if (GAME_MAP_WIDTH == 4000) { forts_per_team *= 1.25; }
+	if (GAME_MAP_WIDTH == 5000) { forts_per_team *= 2; }
+	if (GAME_MAP_WIDTH == 8000) { forts_per_team *= 5; }
 
 
 	// Random Map
-	if (type == 0 || type == 3 || type == 4)
+	if (type == 0 || type == 3)
 	{
 		bool RandomMapDebug = false;
 		if (eventLogging or RandomMapDebug) { std::cout << std::endl << std::endl << "  Demogame 1: Random game. Setting up..." << std::endl; }
 
-		
+
 
 		SpawnGameText("Random Game", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 40, 5, 2, true);
 
 		int team_no = (rand() % (numberOfTeams - 1)) + 2;
-		if (RandomMapDebug) { std::cout << "Number of Teams: " + std::to_string(team_no) << std::endl; }
-		
+		forts_per_team *= std::sqrt(16 / team_no);
 
-		
+
+		if (RandomMapDebug) { std::cout << "Number of Teams: " + std::to_string(team_no) << std::endl; }
+
+
+
 		// int forts_per_team = round((float)max_forts / (float)team_no);
 
 		std::vector <int> team_arr;
@@ -5067,8 +5074,8 @@ void DemoGame(int type)
 		int size = 0;
 
 		for (int i = 0; i < team_arr.size(); i++) {
-			if (RandomMapDebug) { 
-				std::cout << std::to_string(i) + ".." << std::endl; 
+			if (RandomMapDebug) {
+				std::cout << std::to_string(i) + ".." << std::endl;
 				std::cout << std::to_string(centerpoint_arr.size()) << std::endl;
 			}
 			// Check if team center positions are too close
@@ -5097,8 +5104,8 @@ void DemoGame(int type)
 
 				if (!center_repeat) { centerpoint_arr.push_back(centerPoint); }
 			}
-			
-			
+
+
 		}
 
 		// debug
@@ -5109,13 +5116,13 @@ void DemoGame(int type)
 				std::cout << std::to_string(centerpoint_arr[k].x) + "," + std::to_string(centerpoint_arr[k].y) << std::endl;
 			}
 		}
-		
+
 
 		// Spawn all the Forts for each team
 		for (int j = 0; j < forts_per_team; j++) {
 			bool repeat = true;
 			repeat_no = 0;
-			
+
 			for (int i = 0; i < team_arr.size(); i++) {
 				repeat = true;
 				// Calculating the Position for each Fort
@@ -5142,7 +5149,7 @@ void DemoGame(int type)
 
 							dis = std::sqrt(dx * dx + dy * dy);
 							if (dis <= Fort_RANGE * 1.25 && EntityArr[k].team != team_arr[i]) { repeat = true; break; }
-							if (dis < Fort_RANGE * .33 && EntityArr[k].team == team_arr[i]) { repeat = true; break; }
+							if (dis < Fort_RANGE * .5 && EntityArr[k].team == team_arr[i]) { repeat = true; break; }
 
 						}
 					}
@@ -5152,13 +5159,13 @@ void DemoGame(int type)
 
 				SpawnFort(pos, team_arr[i]);
 			}
-			
-				
-		}
-			
-		
 
-		
+
+		}
+
+
+
+
 		if (eventLogging) { std::cout << "    Demogame 1: Random game. Setup Complete." << std::endl; }
 	}
 
@@ -5170,6 +5177,7 @@ void DemoGame(int type)
 
 		std::vector <int> team_arr;
 		int team_no = 2;
+		forts_per_team *= std::sqrt(16 / team_no);
 		float arc_range = 360.f / team_no;
 		float angle_offset = rand() % 360;
 
@@ -5189,7 +5197,7 @@ void DemoGame(int type)
 			else { team_arr.push_back(newteam); }
 		}
 
-		
+
 		// int forts_per_team = float(max_forts / team_no) + 1;
 
 		sf::Vector2f fort_pos;
@@ -5231,7 +5239,7 @@ void DemoGame(int type)
 							dis = std::sqrt(dx * dx + dy * dy);
 
 							if (team_arr[j] != EntityArr[k].team) { if (dis < Fort_RANGE * 1.1) { repeat = true; } }
-							else { if (dis < Fort_RANGE * .4) { repeat = true; } }
+							else { if (dis < Fort_RANGE * .3) { repeat = true; } }
 						}
 					}
 				}
@@ -5245,17 +5253,18 @@ void DemoGame(int type)
 	}
 
 	// RoundTable Map
-	if (type == 2) {
+	if (type == 2 || type == 4) {
 		if (eventLogging) { std::cout << "  Demogame 3: Roundtable Game. Setting up..." << std::endl; }
 
 		SpawnGameText("Roundable Game", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 40, 5, 3, true);
 
 		std::vector <int> team_arr;
 		int team_no = (rand() % (numberOfTeams - 2)) + 3;
+		forts_per_team *= std::sqrt(16 / team_no);
 		float arc_range = 360.f / team_no;
 		float angle_offset = rand() % 360;
 
-		
+
 
 		// Select Random Teams
 		for (int i = 0; i < team_no; i++) {
@@ -5272,7 +5281,7 @@ void DemoGame(int type)
 			else { team_arr.push_back(newteam); }
 		}
 
-		
+
 		// int forts_per_team = float(max_forts / team_no) + 1;
 
 		sf::Vector2f fort_pos;
@@ -5281,8 +5290,8 @@ void DemoGame(int type)
 		float dx, dy, ang, dis, team_ang;
 		sf::Vector2f v_dis;
 
-		
-		
+
+
 		// Spawn Forts
 		for (int i = 0; i < forts_per_team; i++) {
 			for (int j = 0; j < team_arr.size(); j++) {
@@ -5300,31 +5309,94 @@ void DemoGame(int type)
 					dy = sin(ang * std::numbers::pi / 180) * dis + center_pos.y;
 
 					fort_pos = { dx, dy };
-					
+
 
 					if (GameMapRect.contains(fort_pos)) { repeat = false; }
 
-					
+
 
 					for (int k = 0; k < EntityArr.size(); k++) {
 						if (EntityArr[k].ID == "fort") {
 							dx = EntityArr[k].pos[0] - fort_pos.x;
 							dy = EntityArr[k].pos[1] - fort_pos.y;
-							
+
 							dis = std::sqrt(dx * dx + dy * dy);
 
-							if (team_arr[j] != EntityArr[k].team) {if (dis < Fort_RANGE * 1.1) { repeat = true; }}
-							else { if (dis < Fort_RANGE * .25) { repeat = true; } }
+							if (team_arr[j] != EntityArr[k].team) { if (dis < Fort_RANGE * 1) { repeat = true; } }
+							else { if (dis < Fort_RANGE * .4) { repeat = true; } }
 						}
 					}
 				}
 
 				SpawnFort(fort_pos, team_arr[j]);
-				
+
 			}
 		}
 
 		if (eventLogging) { std::cout << "    Demogame 3: Roundtable Game. Setup Complete." << std::endl; }
+	}
+
+
+	// Chaos Map
+	if (type == 5) {
+		if (GAME_MAP_WIDTH < 5000) { DemoGame(5); return; } 
+		if (eventLogging) { std::cout << "  Demogame 4: Chaos Game. Setting up..." << std::endl; }
+
+		SpawnGameText("Chaos Game", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 40, 5, 3, true);
+
+		std::vector <int> team_arr;
+		int team_no = numberOfTeams;
+		forts_per_team *= std::sqrt(16 / team_no) * 1.25;
+		
+		
+		
+		int forts_created = 0;
+		// Select Random Teams
+		for (int i = 0; i < team_no; i++) {
+			int newteam = rand() % numberOfTeams;
+			bool repeat = false;
+
+			for (int j = 0; j < team_arr.size(); j++) {
+				if (team_arr[j] == newteam) {
+					repeat = true;
+				}
+			}
+			if (repeat) { i--; }
+			else { team_arr.push_back(newteam); }
+		}
+
+		// Spawn Forts
+		for (int i = 0; i < forts_per_team; i++) {
+			for (int j = 0; j < team_arr.size(); j++) {
+				bool repeat = true;  repeat_no = 0;
+				sf::Vector2f pos;
+				while (repeat) {
+					repeat_no += 1;
+					if (repeat_no >= repeat_no_max) { EntityArr.clear(); std::cout << "Chaos Map Generation Failed!" << std::endl; DemoGame(5); return; }
+					float dis = rand() % 500 * GAME_MAP_WIDTH / 2500;
+
+					
+					pos.x = rand() % (int)GAME_MAP_WIDTH;
+					pos.y = rand() % (int)GAME_MAP_HEIGHT;
+					
+					
+					if (GameMapRect.contains(pos)) { repeat = false; }
+					// Make Sure Forts are not too close
+					for (int k = 0; k < EntityArr.size(); k++) {
+						if (EntityArr[k].ID == "fort") {
+							float dx = pos.x - EntityArr[k].pos[0];
+							float dy = pos.y - EntityArr[k].pos[1];
+							dis = std::sqrt(dx * dx + dy * dy);
+							if (dis <= Fort_RANGE * 1.1 && EntityArr[k].team != team_arr[j]) { repeat = true; break; }
+							if (dis < Fort_RANGE * .5 && EntityArr[k].team == team_arr[j]) { repeat = true; break; }
+						}
+					}
+				}
+				forts_created += 1;
+				repeat_no = 0;
+				SpawnFort(pos, team_arr[j]);
+			}
+		}
 	}
 
 	// Set all Forts to Immediately spawn tanks
@@ -5380,7 +5452,6 @@ void DemoGame(int type)
 
 	if (eventLogging) { std::cout << "  DEMOGAME() executed" << std::endl; }
 }
-
 
 
 void updateWind() {
@@ -5604,7 +5675,7 @@ sf::Vector2f scaleVector(sf::Vector2f& vector, float magnitude) {
 	return { vector.x * magnitude / Old_magnitude, vector.y * magnitude / Old_magnitude };
 }
 
-float displacement(sf::Vector2f& vec_1, sf::Vector2f&vec_2) {
+float displacement(const sf::Vector2f& vec_1, const sf::Vector2f&vec_2) {
 	sf::Vector2f diff_vec = vec_2 - vec_1;
 	return  std::sqrt(diff_vec.x * diff_vec.x + diff_vec.y * diff_vec.y);
 }
