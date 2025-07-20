@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 /screenshots
 /Game Data
+/SaveGame.json
