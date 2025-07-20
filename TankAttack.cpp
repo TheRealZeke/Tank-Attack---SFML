@@ -2927,7 +2927,7 @@ public:
 		}
 
 		float gx = pos.x - Camera_Pos[0]; float gy = pos.y - Camera_Pos[1];
-
+		opp_col = oppCol(col);
 
 
 		circle.setPosition({ gx, gy });
@@ -2982,8 +2982,15 @@ public:
 
 		window.draw(circle);
 
-		if (DEBUG_FEATURES && tank_deaths > 0) {
-			renderText(window, { gx, gy }, std::to_string(tank_deaths), GameFont, 10, col);
+		if (DEBUG_FEATURES) {
+			opp_col.a = col.a;
+			renderText(window, { gx, gy }, std::to_string(grid_x) + "," + std::to_string(grid_y), GameFont, 10, col);
+			renderText(window, { gx, gy + 15 }, std::to_string(neighbors.size()), GameFont, 10, opp_col);
+			for (int i = 0; i < neighbors.size(); i++) {
+				sf::Vector2f n_pos = neighbors[i]->pos;
+				n_pos.x -= Camera_Pos[0]; n_pos.y -= Camera_Pos[1];
+				drawThickLine(window, { gx, gy }, n_pos, 3, opp_col);
+			}
 		}
 	}
 	void flash(float vel, sf::Color t_col, float t_intensity, int type = 0)
@@ -4181,7 +4188,9 @@ void RenderMinimap()
 
 	sf::Color t_col = StageColour;
 	t_col.a = 192;
-	sf::Vector2f t_pos, g_pos, g_size;
+	sf::Vector2f t_pos, g_size;
+	sf::Vector2f g_pos, p_g_pos, p_r_g_pos;
+	sf::Vector2f prev_t_pos, prev_row_t_pos;
 
 	const float inv_GAME_MAP_WIDTH = 1.0f / GAME_MAP_WIDTH;
 	const float inv_GAME_MAP_HEIGHT = 1.0f / GAME_MAP_HEIGHT;
@@ -4189,36 +4198,75 @@ void RenderMinimap()
 	const float height_scale = MINIMAP_HEIGHT * inv_GAME_MAP_HEIGHT;
 
 
+	float last_x_plus_width = NULL;
+	float last_y = NULL;
+
+
 	drawFilledRect(window, MiniMapRect, t_col);
 	drawRect(window, MiniMapRect, oppCol(StageColour), 1);
 
 	// Draw Tiles
 	if (draw_Tiles) {
+
+		sf::Vector2i g_pos, p_g_pos, g_size;
 		g_size.x = Tiles_Size * width_scale;
 		g_size.y = Tiles_Size * height_scale;
 
 		sf::VertexArray tileQuads(sf::Quads);
 
 
-		for (const auto& row_of_Tiles : TileArr) {
-			for (const auto& tile : row_of_Tiles) {
-				if (tile.team != -1) {
-					t_pos = tile.pos;	// Tile graphical position
+		for (int i = 0; i < TileArr.size(); i++) {
+			for (int j = 0; j < TileArr[i].size(); j++) {
+				if (TileArr[i][j].team != -1) {
+					t_pos = TileArr[i][j].pos;	// Tile graphical position
+					prev_t_pos = (j > 0) ? TileArr[i][j - 1].pos : t_pos;	// Previous Tile graphical position
 
-					g_pos.x = t_pos.x * width_scale + MiniMapRect.left;
-					g_pos.y = t_pos.y * height_scale + MiniMapRect.top;
+					if (i > 0) { prev_row_t_pos = TileArr[i - 1][j].pos; }
 
-					sf::Color c = tile.col;
-					float x = g_pos.x, y = g_pos.y, tile_width = g_size.x, tile_height = g_size.y;		// Tile graphical position and size
+					g_pos.x = (int)std::round(t_pos.x * width_scale + MiniMapRect.left);
+					g_pos.y = (int)std::round(t_pos.y * height_scale + MiniMapRect.top);
 
-					if (tile.border_tile) { c.a = tile.col.a * 2; }
-					else {
-						c.a = (tile.col.a / 2) + (tile.col.a / 3) * tile.flicker_timer / 50;
+					p_g_pos.x = (int)std::round(prev_t_pos.x * width_scale + MiniMapRect.left);
+					p_g_pos.y = (int)std::round(prev_t_pos.y * height_scale + MiniMapRect.top);
+
+					p_r_g_pos.y = (int)std::round(prev_row_t_pos.y * height_scale + MiniMapRect.top);
+
+					sf::Color c = TileArr[i][j].col;
+					int x = g_pos.x, y = g_pos.y, tile_width = g_size.x, tile_height = g_size.y;		// Tile graphical position and size
+					int p_x = p_g_pos.x, p_y = p_g_pos.y;													// Previous Tile graphical position and size
+					int p_r_y = p_r_g_pos.y;													// Previous Row Tile graphical position and size
+
+
+					 
+					
+					int diff = x - (p_x + g_size.x);    // horizontal gap length
+					x -= diff;
+					tile_width += diff;
+
+					if (i > 0) {
+						diff = y - (p_r_y + g_size.y);	// vertical gap length
+						/*if (DEBUG_FEATURES) {
+							std::cout << "diff(" + std::to_string(diff) + ") = y(" +
+								std::to_string(y) + ") - [p_r_y(" +
+								std::to_string(p_r_y) + ") + g_size.y(" +
+								std::to_string(g_size.y) + ")]"
+								<< std::endl;
+						}*/
+						y -= diff;
+						tile_height += diff;
 					}
-					tileQuads.append(sf::Vertex({ x,     y }, c));
-					tileQuads.append(sf::Vertex({ x + tile_width, y }, c));
-					tileQuads.append(sf::Vertex({ x + tile_width, y + tile_height }, c));
-					tileQuads.append(sf::Vertex({ x,     y + tile_height }, c));
+					
+
+
+
+					if (TileArr[i][j].border_tile) { c.a = TileArr[i][j].col.a * 2; }
+					else {
+						c.a = (TileArr[i][j].col.a / 2) + (TileArr[i][j].col.a / 3) * TileArr[i][j].flicker_timer / 50;
+					}
+					tileQuads.append(sf::Vertex(sf::Vector2f(x,					y),					c));
+					tileQuads.append(sf::Vertex(sf::Vector2f(x + tile_width,	y),					c));
+					tileQuads.append(sf::Vertex(sf::Vector2f(x + tile_width,	y + tile_height),	c));
+					tileQuads.append(sf::Vertex(sf::Vector2f(x,					y + tile_height),	c));
 				}
 			}
 			
@@ -4782,7 +4830,7 @@ void InitTiles()
 	int num_rows = static_cast<int>((YY + size * 2) / size);
 	int num_cols = static_cast<int>((XX + size * 2 * x_fix) / (size * x_fix));
 
-	TileArr.resize(num_rows);
+	
 
 	for (double y = -size; y < YY + size; y += size) {		// Loop through each row 
 		int cx = 0;		// Current column index
@@ -4794,7 +4842,7 @@ void InitTiles()
 			row_of_Tiles.push_back(Tile{ sf::Vector2f{ gx, gy }, cx, cy });				// Create a new tile at the calculated position
 			cx++;
 		}
-		TileArr.push_back(row_of_Tiles);		// Set the position of each tile	
+		TileArr.push_back(row_of_Tiles);		// Add the current row of tiles to the TileArr	
 		cy++;
 	}
 
@@ -5598,20 +5646,29 @@ Entity* checkEntity(Entity* entity) {
 	return entity;
 }
 
+
+
+
 std::vector<Tile*> getTileNeighbors(Tile& tile) {
-	static const int even_offsets[6][2] = { {-1,-1}, {0,-1}, {1,0}, {0,1}, {-1,1}, {-1,0} };	// Hexagon offsets for even rows
-	static const int odd_offsets[6][2] = { {0,-1}, {1,-1}, {1,0}, {1,1}, {0,1}, {-1,0} };		// Hexagon offsets for odd rows
+	static const int even_offsets[6][2] = { {-1,-1}, {0,-1}, {1,0}, {0,1}, {-1,1}, {-1,0} };
+	static const int odd_offsets[6][2] = { {0,-1}, {1,-1}, {1,0}, {1,1}, {0,1}, {-1,0} };
 
 	std::vector<Tile*> neighbors;
 	const int (*offsets)[2] = (tile.grid_y % 2 == 0) ? even_offsets : odd_offsets;
 
-	int rows = static_cast<int>(TileArr.size());
+	// Get grid dimensions (assuming rectangular grid)
+	int max_rows = static_cast<int>(TileArr.size());
+	if (max_rows == 0) return neighbors;
+	int max_cols = static_cast<int>(TileArr[0].size()); // Use first row's size
+
 	for (int i = 0; i < 6; ++i) {
-		int nx = tile.grid_x + offsets[i][0];		// Calculate neighbor's x-coordinate
-		int ny = tile.grid_y + offsets[i][1];		// Calculate neighbor's y-coordinate
-		if (ny >= 0 && ny < rows) {
-			int cols = static_cast<int>(TileArr[ny].size());	// Get number of columns in the array
-			if (nx >= 0 && nx < cols) {
+		int nx = tile.grid_x + offsets[i][0];
+		int ny = tile.grid_y + offsets[i][1];
+
+		// Check bounds using fixed grid dimensions
+		if (ny >= 0 && ny < max_rows) {
+			int max_cols = static_cast<int>(TileArr[ny].size());
+			if (nx >= 0 && nx < max_cols) {
 				neighbors.push_back(&TileArr[ny][nx]);
 			}
 		}
