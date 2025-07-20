@@ -1,5 +1,9 @@
 import json
 import matplotlib.pyplot as plt
+import os
+
+
+os.chdir("Game Data")
 
 colorArr = [
     (0/255.0, 0/255.0, 255/255.0, 0.75),

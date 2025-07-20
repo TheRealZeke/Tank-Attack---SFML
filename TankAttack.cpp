@@ -171,6 +171,9 @@ sf::Font SecondaryFont;
 float GAME_MAP_WIDTH = 2500; float GAME_MAP_HEIGHT = 2500;
 float MINIMAP_WIDTH = 250; float MINIMAP_HEIGHT = 250;
 
+std::ifstream TeamsFile("TeamSettings.json");
+json _jData_Teams = json::parse(TeamsFile);
+
 
 const int numberOfTeams = 16;
 sf::Color colorArr[numberOfTeams] = {
@@ -2541,6 +2544,10 @@ void Entity::draw()
 
 			col.a = 255.f * (hp / max_hp);
 			drawRect(window, n_rect, col, 1);
+
+			renderText(window, { G_pos[0] + 10, G_pos[1] - 10 }, std::to_string(uniqueID), SecondaryFont, 12, sf::Color::White);
+
+
 		}
 
 		if (eventLogging) { std::cout << "  Tank Drawn." << std::endl; }
@@ -2932,9 +2939,14 @@ public:
 
 		circle.setPosition({ gx, gy });
 		circle.setOutlineColor(col);
-		if (fort_is_assimilating) {
-			sf::Color temp_col = opp_col; temp_col.a = col.a * .67;
-			circle.setOutlineColor(temp_col);
+		if (fort_is_assimilating) {		
+			int adjusted_x = grid_x - (grid_y % 2 == 1 ? 1 : 0);
+			if ((adjusted_x + grid_y) % 3 == 0	||
+				(adjusted_x - grid_y) % 3 == 0 
+				) {
+				sf::Color temp_col = opp_col; temp_col.a = col.a * .67;
+				circle.setOutlineColor(temp_col);
+			}	
 		}
 		circle.setFillColor({ 0,0,0,0 });
 
@@ -2983,14 +2995,27 @@ public:
 		window.draw(circle);
 
 		if (DEBUG_FEATURES) {
-			opp_col.a = col.a;
-			renderText(window, { gx, gy }, std::to_string(grid_x) + "," + std::to_string(grid_y), GameFont, 10, col);
-			renderText(window, { gx, gy + 15 }, std::to_string(neighbors.size()), GameFont, 10, opp_col);
-			for (int i = 0; i < neighbors.size(); i++) {
-				sf::Vector2f n_pos = neighbors[i]->pos;
-				n_pos.x -= Camera_Pos[0]; n_pos.y -= Camera_Pos[1];
+			float tmp = col.a;
+			opp_col.a = col.a * 1.5;
+			col.a *= 1.5;
+			
+			if (circle.getGlobalBounds().contains(Mouse_Pos)) {	// Mouse is over tile
+				renderText(window, { gx, gy }, std::to_string(grid_x) + "," + std::to_string(grid_y), GameFont, 15, col, 1, opp_col);
+				renderText(window, { gx, gy + 30 }, "Fort ID: " + std::to_string(FortID), SecondaryFont, 20, opp_col);
+				sf::Vector2f n_pos = { fort->pos[0] - Camera_Pos[0], fort->pos[1] - Camera_Pos[1]};
 				drawThickLine(window, { gx, gy }, n_pos, 3, opp_col);
 			}
+			// Below code to draw lines to neighbors, enabled only for testing
+			if (false) {
+				for (int i = 0; i < neighbors.size(); i++) {
+					sf::Vector2f n_pos = neighbors[i]->pos;
+					n_pos.x -= Camera_Pos[0]; n_pos.y -= Camera_Pos[1];
+					drawThickLine(window, { gx, gy }, n_pos, 3, opp_col);
+				}
+			}
+
+			col.a = tmp;
+			opp_col.a = tmp;
 		}
 	}
 	void flash(float vel, sf::Color t_col, float t_intensity, int type = 0)
@@ -4263,6 +4288,21 @@ void RenderMinimap()
 					else {
 						c.a = (TileArr[i][j].col.a / 2) + (TileArr[i][j].col.a / 3) * TileArr[i][j].flicker_timer / 50;
 					}
+
+					if (TileArr[i][j].fort_is_assimilating) {
+						int grid_x = TileArr[i][j].grid_x;
+						int grid_y = TileArr[i][j].grid_y;
+						int adjusted_x = grid_x - (grid_y % 2 == 1 ? 1 : 0);
+						if ((adjusted_x + grid_y) % 3 == 0 ||
+							(adjusted_x - grid_y) % 3 == 0
+							) {
+								float tmp = c.a;
+								c = oppCol(c);
+								c.a = tmp;
+						}
+						
+					}
+
 					tileQuads.append(sf::Vertex(sf::Vector2f(x,					y),					c));
 					tileQuads.append(sf::Vertex(sf::Vector2f(x + tile_width,	y),					c));
 					tileQuads.append(sf::Vertex(sf::Vector2f(x + tile_width,	y + tile_height),	c));
