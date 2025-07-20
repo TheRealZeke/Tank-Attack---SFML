@@ -3,26 +3,20 @@ import matplotlib.pyplot as plt
 import os
 
 
-os.chdir("Game Data")
 
+
+# Load color data from JSON file
+with open('TeamSettings.json', 'r') as file:
+    data = json.load(file)
+    colors = data['colors']  # List of RGB lists (e.g., [[0,0,255], ...])
+
+# Convert JSON colors to normalized RGBA tuples (with alpha=0.75)
 colorArr = [
-    (0/255.0, 0/255.0, 255/255.0, 0.75),
-    (255/255.0, 0/255.0, 0/255.0, 0.75),
-    (0/255.0, 255/255.0, 0/255.0, 0.75),
-    (255/255.0, 255/255.0, 0/255.0, 0.75),
-    (255/255.0, 32/255.0, 128/255.0, 0.75),
-    (128/255.0, 0/255.0, 255/255.0, 0.75),
-    (0/255.0, 255/255.0, 255/255.0, 0.75),
-    (128/255.0, 48/255.0, 0/255.0, 0.75),
-    (64/255.0, 64/255.0, 64/255.0, 0.75),
-    (255/255.0, 128/255.0, 0/255.0, 0.75),
-    (0/255.0, 255/255.0, 128/255.0, 0.75),
-    (150/255.0, 119/255.0, 75/255.0, 0.75),
-    (128/255.0, 0/255.0, 64/255.0, 0.75),
-    (0/255.0, 128/255.0, 255/255.0, 0.75),
-    (200/255.0, 200/255.0, 200/255.0, 0.75),
-    (1/255.0, 1/255.0, 1/255.0, 0.75)
+    (r/255.0, g/255.0, b/255.0, 0.75)
+    for r, g, b in colors
 ]
+
+os.chdir("Game Data")
 
 def plot_population(file_path, axis, title):
     with open(file_path) as file:

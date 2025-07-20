@@ -175,63 +175,42 @@ std::ifstream TeamsFile("TeamSettings.json");
 json _jData_Teams = json::parse(TeamsFile);
 
 
-const int numberOfTeams = 16;
-sf::Color colorArr[numberOfTeams] = {
-	{0, 0, 255},
-	{255, 0, 0},
-	{0, 255, 0},
-	{255, 255, 0},
-	{255, 32, 128},
-	{128, 0, 255},
-	{0, 32, 128},
-	{128, 48, 0},
-	{32, 85, 0},
-	{255, 128, 0},
-	{0, 255, 128},
-	{150, 119, 75},
-	{170, 0, 85},
-	{0, 128, 255},
-	{200, 200, 200},
-	{85, 85, 85}
-};
+int numberOfTeams = _jData_Teams["numberOfTeams"];
+std::vector<sf::Color> colorArr;
 
-int TeamTileNo[numberOfTeams] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
-float TeamTilePerc[numberOfTeams] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+std::vector <int> TeamTileNo;
+std::vector <float> TeamTilePerc;
 
 bool recording = false;
-std::vector <std::array <int, numberOfTeams>> TankPopArr;
-std::vector <std::array <int, numberOfTeams>> FortPopArr;
-std::vector <std::array <int, numberOfTeams>> SpecialTankPopArr;
-std::vector <std::array <int, numberOfTeams>> SpecialFortPopArr;
-std::vector <std::array <int, numberOfTeams>> TanksKilledArr;
-std::vector <std::array <int, numberOfTeams>> TanksLostArr;
-std::vector <std::array <int, numberOfTeams>> AverageTankAgeArr;
-std::vector <std::array <int, numberOfTeams>> TeamTerritoryArr;
-std::vector <std::array <int, numberOfTeams>> CapturedFortPopArr;
+std::vector <std::vector <int>> TankPopArr;
+std::vector <std::vector <int>> FortPopArr;
+std::vector <std::vector <int>> SpecialTankPopArr;
+std::vector <std::vector <int>> SpecialFortPopArr;
+std::vector <std::vector <int>> TanksKilledArr;
+std::vector <std::vector <int>> TanksLostArr;
+std::vector <std::vector <int>> AverageTankAgeArr;
+std::vector <std::vector <int>> TeamTerritoryArr;
+std::vector <std::vector <int>> CapturedFortPopArr;
 
-std::vector <std::array <float, numberOfTeams>> SpecialTankRatioArr;
-std::vector <std::array <float, numberOfTeams>> SpecialFortRatioArr;
-std::vector <std::array <float, numberOfTeams>> CapturedFortRatioArr;
-
-
-int temp_Tank_Pop[numberOfTeams];
-int temp_Fort_Pop[numberOfTeams];
-int temp_Captured_Fort_Pop[numberOfTeams];
-int temp_Special_Tank_Pop[numberOfTeams];
-int temp_Special_Fort_Pop[numberOfTeams];
+std::vector <std::vector <float>> SpecialTankRatioArr;
+std::vector <std::vector <float>> SpecialFortRatioArr;
+std::vector <std::vector <float>> CapturedFortRatioArr;
 
 
-std::string TeamNameArr[numberOfTeams] = {
-	"Blue", "Red",    "Green",   "Yellow",
-	"Pink", "Purple", "Cyan",    "Brown",
-	"Grey", "Orange", "CyGreen", "Khaki",
-	"Wine", "Turquoise"
-};
+std::vector <int> temp_Tank_Pop;
+std::vector <int> temp_Fort_Pop;
+std::vector <int> temp_Captured_Fort_Pop;
+std::vector <int> temp_Special_Tank_Pop;
+std::vector <int> temp_Special_Fort_Pop;
+
 int FPS = 60;
 
-sf::Image CompTankImgArr[numberOfTeams]; sf::Texture CompTankTextArr[numberOfTeams];
-sf::Image FortImgArr[numberOfTeams]; sf::Texture FortTextArr[numberOfTeams];
-sf::Image DeadTankImgArr[numberOfTeams][2]; sf::Texture DeadTankTextArr[numberOfTeams][2];
+std::vector <sf::Image> CompTankImgArr;
+std::vector <sf::Texture> CompTankTextArr;
+std::vector <sf::Image> FortImgArr;
+std::vector <sf::Texture> FortTextArr;
+std::vector <std::array<sf::Image, 2>> DeadTankImgArr;
+std::vector <std::array<sf::Texture, 2>> DeadTankTextArr;
 sf::Vector2f Mouse_Pos;
 
 
@@ -246,13 +225,13 @@ std::vector <Button> ButtonArr;
 
 
 
-int Tanks_Killed[numberOfTeams];
-int Forts_Destroyed[numberOfTeams];
-int Tanks_Lost[numberOfTeams];
-int Forts_Lost[numberOfTeams];
+std::vector<int> Tanks_Killed;
+std::vector<int> Forts_Destroyed;
+std::vector<int> Tanks_Lost;
+std::vector<int> Forts_Lost;
 
-int PvP_Tanks_Killed[numberOfTeams];
-int PvP_Tanks_Lost[numberOfTeams];
+std::vector<int> PvP_Tanks_Killed;
+std::vector<int> PvP_Tanks_Lost;
 
 
 
@@ -3224,30 +3203,27 @@ public:
 	}
 
 	void fire(){
-		switch (action)
-		{
-		case 0:  // Quit Game
+		const int temp = numberOfTeams;
+		
+		if (action == 0) {  // Quit Game
 			quitGame = true;
-			break;
-		case 1:  // DemoGame
+		}
+		else if (action == 1) {
 			DemoGame();
-			break;
-		case numberOfTeams + 2: // Delete Entities
+		}
+		else if (action == numberOfTeams + 2) { // Delete Entities
 			GameTextArr.clear();
 			EntityArr.clear();
 			DeadTankArr.clear();
 			SpawnGameText("ENTITIES DELETED", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 30, 5, 2, true);
-			break;
-		case numberOfTeams + 3: // Null Team Summoning
+		}
+		else if (action == numberOfTeams + 3) {
 			summonTeam = -1;
-			break;
-
-
-		default:
+		}
+		else {
 			if (action > 1 && action < numberOfTeams + 2) {
 				summonTeam = action - 2;
 			}
-			break;
 		}
 	}
 
@@ -3292,7 +3268,33 @@ int main()
 
 	// ---------------------------------- G A M E   S E T U P --------------------------------------------------------------------------
 
+	std::cout << "Number of Teams: " << numberOfTeams << std::endl;
+	for (auto& arr : _jData_Teams["colors"]) {
+		colorArr.push_back({ arr[0], arr[1], arr[2] });
+		std::cout << arr[0] << "," << arr[1] << "," << arr[2] << std::endl;
+	}
 
+	for (int i = 0; i < numberOfTeams; i++) {
+		TeamTileNo.push_back(0);
+		TeamTilePerc.push_back(0);
+
+		
+
+		temp_Tank_Pop.push_back(0);
+		temp_Fort_Pop.push_back(0);
+		temp_Captured_Fort_Pop.push_back(0);
+		temp_Special_Tank_Pop.push_back(0);
+		temp_Special_Fort_Pop.push_back(0);
+
+
+		Tanks_Killed.push_back(0);
+		Forts_Destroyed.push_back(0);
+		Tanks_Lost.push_back(0);
+		Forts_Lost.push_back(0);
+
+		PvP_Tanks_Killed.push_back(0);
+		PvP_Tanks_Lost.push_back(0);
+	}
 
 
 
@@ -3331,21 +3333,26 @@ int main()
 	DeadTankImg[1].loadFromFile("files/images/deadtank02.bmp");
 
 	for (int i = 0; i < numberOfTeams; i++) {
-		CompTankImgArr[i] = transformImgCol(TankImg, colorArr[i]);
+		FortImgArr.push_back(sf::Image());
+		CompTankTextArr.push_back(sf::Texture());
+		FortTextArr.push_back(sf::Texture());
+		DeadTankTextArr.push_back({ sf::Texture(), sf::Texture() });
+	}
+	
+
+	for (int i = 0; i < numberOfTeams; i++) {
+		CompTankImgArr.push_back(transformImgCol(TankImg, colorArr[i]));
 		CompTankTextArr[i].loadFromImage(CompTankImgArr[i]);
 
+		
 		FortImgArr[i] = transformImgCol(FortImg, colorArr[i]);
 		FortTextArr[i].loadFromImage(FortImgArr[i]);
 
-		DeadTankImgArr[i][0] = transformImgCol(DeadTankImg[0], colorArr[i]);
-		DeadTankImgArr[i][1] = transformImgCol(DeadTankImg[1], colorArr[i]);
+		DeadTankImgArr.push_back({ transformImgCol(DeadTankImg[0], colorArr[i]), transformImgCol(DeadTankImg[1], colorArr[i]) });
 		DeadTankImgArr[i][0].createMaskFromColor({ 0,128,128 });
 		DeadTankImgArr[i][1].createMaskFromColor({ 0,128,128 });
 		DeadTankTextArr[i][0].loadFromImage(DeadTankImgArr[i][0]);
 		DeadTankTextArr[i][1].loadFromImage(DeadTankImgArr[i][1]);
-
-
-
 	}
 
 
@@ -3423,96 +3430,105 @@ int main()
 
 		// Update Population Data
 		if (game_ticks % 180 == 0) {
-			std::array<int, numberOfTeams> pops;
-			std::array<float, numberOfTeams> f_pops;
+			std::vector<int> pops;
+			std::vector<float> f_pops;
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Tank Population
-				pops[i] = getTankPop(i);
+				pops.push_back(getTankPop(i));
 			}
 			TankPopArr.push_back(pops);
+			pops.clear();
 
-
+			
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Fort Population
-				pops[i] = getFortPop(i);
+				pops.push_back(getFortPop(i));
 			}
 			FortPopArr.push_back(pops);
-
+			pops.clear();
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Captured Fort Population
-				pops[i] = getFortPop(i, true);
+				pops.push_back(getFortPop(i, true));
 			}
 			CapturedFortPopArr.push_back(pops);
-
+			pops.clear();
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Captured Fort Ratio
 				if (getFortPop(i) != 0) {// prevent divide by zero error
-					f_pops[i] = (float)getFortPop(i, true) / (float)getFortPop(i);
+					f_pops.push_back((float)getFortPop(i, true) / (float)getFortPop(i));
 				}
 				else {
-					f_pops[i] = 0;
+					f_pops.push_back(0);
 				}
 			}
 			CapturedFortRatioArr.push_back(f_pops);
+			f_pops.clear();
 
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Special Tank Population
-				pops[i] = getSpecialTankPop(i);
+				pops.push_back(getSpecialTankPop(i));
 			}
 			SpecialTankPopArr.push_back(pops);
+			pops.clear();
 
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Special Tank Ratio
-				f_pops[i] = (float)getSpecialTankPop(i) / (float)getTankPop(i);
+				f_pops.push_back((float)getSpecialTankPop(i) / (float)getTankPop(i));
 			}
 			SpecialTankRatioArr.push_back(f_pops);
+			f_pops.clear();
 
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Special Fort Population
-				pops[i] = getSpecialFortPop(i);
+				pops.push_back(getSpecialFortPop(i));
 			}
 			SpecialFortPopArr.push_back(pops);
+			pops.clear();
 
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Special Fort Ratio
-				f_pops[i] = (float)getSpecialFortPop(i) / (float)getFortPop(i);
+				f_pops.push_back((float)getSpecialFortPop(i) / (float)getFortPop(i));
 			}
 			SpecialFortRatioArr.push_back(f_pops);
+			f_pops.clear();
 
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Killed Tanks
-				pops[i] = PvP_Tanks_Killed[i];
+				pops.push_back(PvP_Tanks_Killed[i]);
 			}
 			TanksKilledArr.push_back(pops);
+			pops.clear();
 
 
 
 			for (int i = 0; i < numberOfTeams; i++) {		// Update Lost Tanks
-				pops[i] = PvP_Tanks_Lost[i];
+				pops.push_back(PvP_Tanks_Lost[i]);
 			}
 			TanksLostArr.push_back(pops);
-
+			pops.clear();
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Average Tank Age
-				pops[i] = getAverageTankAge(i);
+				pops.push_back(getAverageTankAge(i));
 			}
 			AverageTankAgeArr.push_back(pops);
+			pops.clear();
 
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Tile number
-				pops[i] = getTerritory(i);
+				pops.push_back(getTerritory(i));
 			}
 			TeamTerritoryArr.push_back(pops);
+			pops.clear();
 		}
 
 
@@ -4293,8 +4309,8 @@ void RenderMinimap()
 						int grid_x = TileArr[i][j].grid_x;
 						int grid_y = TileArr[i][j].grid_y;
 						int adjusted_x = grid_x - (grid_y % 2 == 1 ? 1 : 0);
-						if ((adjusted_x + grid_y) % 3 == 0 ||
-							(adjusted_x - grid_y) % 3 == 0
+						if (((adjusted_x + grid_y) % 3 == 0 ||
+							(adjusted_x - grid_y) % 3 == 0) && !(TileArr[i][j].border_tile)
 							) {
 								float tmp = c.a;
 								c = oppCol(c);
@@ -5000,7 +5016,7 @@ void DemoGame(int type)
 		GameMapRect = { 0, 0, GAME_MAP_WIDTH, GAME_MAP_HEIGHT };
 	}
 	
-	float forts_per_team = (rand() % 10) + 5;
+	float forts_per_team = (rand() % 8) + 8;
 	if (GAME_MAP_WIDTH > 3200) { forts_per_team *= 1.5; }
 	if (GAME_MAP_WIDTH > 4000) { forts_per_team *= 1.25; }
 
@@ -5401,8 +5417,11 @@ void loadGameButtons() {
 }
 
 void updateStats() {
-	int num[numberOfTeams];
-	int num2[numberOfTeams];
+	std::vector <int> num, num2;
+	for (int i = 0; i < numberOfTeams; i++) {
+		num.push_back(0);
+		num2.push_back(0);
+	}
 	// Tank Pop
 	for (int team = 0; team < numberOfTeams; team++) {
 		num[team] = 0;
