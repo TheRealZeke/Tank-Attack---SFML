@@ -4832,6 +4832,9 @@ void UpdateTiles()
 		}
 	}
 
+
+	// Disabling the code below for assigning tank deaths to tiles
+	/*
 	for (int j = 0; j < TankDeathPositions.size(); j++) {
 		float shortest_dis = 1000000;
 		std::array <int, 2> closestTile_index;
@@ -4853,6 +4856,7 @@ void UpdateTiles()
 			TileArr[closestTile_index[0]][closestTile_index[1]].tank_deaths += 1;
 		}
 	}
+	*/
 
 	for (auto& row_of_Tiles : TileArr) {
 		for (Tile& tile : row_of_Tiles) {
@@ -5346,7 +5350,7 @@ void DemoGame(int type)
 
 		std::vector <int> team_arr;
 		int team_no = numberOfTeams;
-		forts_per_team *= std::sqrt(16 / team_no) * 1.25;
+		forts_per_team *= std::sqrt(16 / team_no) * 1.5;
 		
 		
 		
@@ -5388,7 +5392,7 @@ void DemoGame(int type)
 							float dy = pos.y - EntityArr[k].pos[1];
 							dis = std::sqrt(dx * dx + dy * dy);
 							if (dis <= Fort_RANGE * 1.1 && EntityArr[k].team != team_arr[j]) { repeat = true; break; }
-							if (dis < Fort_RANGE * .5 && EntityArr[k].team == team_arr[j]) { repeat = true; break; }
+							if (dis < Fort_RANGE * .33 && EntityArr[k].team == team_arr[j]) { repeat = true; break; }
 						}
 					}
 				}
