@@ -1258,7 +1258,7 @@ public:
 			volatile int dummy = target->uniqueID;
 		}__except(EXCEPTION_EXECUTE_HANDLER){
 			target = nullptr;
-			std::cout << "Error caught at line 2558" << std::endl;
+			std::cout << "Error caught at line 1261" << std::endl;
 		}
 
 		if (target == nullptr || target->uniqueID != targetID || target->ID != target_StringID) {
@@ -1295,7 +1295,7 @@ public:
 		}
 		__except (EXCEPTION_EXECUTE_HANDLER) {
 			sender = nullptr;
-			std::cout << "Error caught at Line:2594" << std::endl;
+			std::cout << "Error caught at Line:1298" << std::endl;
 		}
 
 		if (sender == nullptr || sender->uniqueID != senderID) {
@@ -4999,7 +4999,7 @@ void DemoGame(int type)
 
 	GAME_MAP_WIDTH = 2500; GAME_MAP_HEIGHT = 2500;
 	sf::FloatRect GameMapRect(0, 0, GAME_MAP_WIDTH, GAME_MAP_HEIGHT);
-	if (type == -1) { type = rand() % 6; }
+	if (type == -1) { type = rand() % 4; }
 
 	int repeat_no, repeat_no_max;
 	repeat_no_max = 1'000;
@@ -5026,11 +5026,11 @@ void DemoGame(int type)
 	float forts_per_team = (rand() % 10) + 4;
 	if (GAME_MAP_WIDTH == 4000) { forts_per_team *= 1.25; }
 	if (GAME_MAP_WIDTH == 5000) { forts_per_team *= 2; }
-	if (GAME_MAP_WIDTH == 8000) { forts_per_team *= 5; }
+	if (GAME_MAP_WIDTH == 8000) { forts_per_team *= 3; }
 
 
 	// Random Map
-	if (type == 0 || type == 3)
+	if (type == 0)
 	{
 		bool RandomMapDebug = false;
 		if (eventLogging or RandomMapDebug) { std::cout << std::endl << std::endl << "  Demogame 1: Random game. Setting up..." << std::endl; }
@@ -5257,7 +5257,7 @@ void DemoGame(int type)
 	}
 
 	// RoundTable Map
-	if (type == 2 || type == 4) {
+	if (type == 2) {
 		if (eventLogging) { std::cout << "  Demogame 3: Roundtable Game. Setting up..." << std::endl; }
 
 		SpawnGameText("Roundable Game", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 40, 5, 3, true);
@@ -5342,15 +5342,15 @@ void DemoGame(int type)
 
 
 	// Chaos Map
-	if (type == 5) {
-		if (GAME_MAP_WIDTH < 5000) { DemoGame(5); return; } 
+	if (type == 3) {
+		//if (GAME_MAP_WIDTH < 5000) { DemoGame(3); return; } 
 		if (eventLogging) { std::cout << "  Demogame 4: Chaos Game. Setting up..." << std::endl; }
 
 		SpawnGameText("Chaos Game", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 40, 5, 3, true);
 
 		std::vector <int> team_arr;
 		int team_no = numberOfTeams;
-		forts_per_team *= std::sqrt(16 / team_no) * 1.5;
+		forts_per_team *= (std::sqrt(16 / team_no) * .75);
 		
 		
 		
@@ -5376,7 +5376,7 @@ void DemoGame(int type)
 				sf::Vector2f pos;
 				while (repeat) {
 					repeat_no += 1;
-					if (repeat_no >= repeat_no_max) { EntityArr.clear(); std::cout << "Chaos Map Generation Failed!" << std::endl; DemoGame(5); return; }
+					if (repeat_no >= repeat_no_max) { EntityArr.clear(); std::cout << "Chaos Map Generation Failed!" << std::endl; DemoGame(3); return; }
 					float dis = rand() % 500 * GAME_MAP_WIDTH / 2500;
 
 					
