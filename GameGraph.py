@@ -111,7 +111,7 @@ plot_population("SpecialFortPop.json", axs[2, 2], "Special Fort Population")
 
 plot_over_time("CapturedFortRatio.json", axs[0, 3], "Captured Fort Ratio")
 plot_over_time("SpecialTankRatio.json", axs[1, 3], "Special Tank Ratio")
-plot_over_time("SpecialFortRatio.json", axs[2, 3], "Spectial Fort Ratio")
+plot_over_time("DeadTankPopArr.json", axs[2, 3], "Dead Tank Population")
 plt.show()
 
 # Scatter plot for Tanks Killed/Lost

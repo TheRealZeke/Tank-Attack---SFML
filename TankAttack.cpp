@@ -3460,7 +3460,7 @@ int main()
 			for (int i = 0; i < numberOfTeams; i++) {
 				int deadtankpop = 0;
 				for (int j = 0; j < DeadTankArr.size(); j++) {
-					if (DeadTankArr[i].team == i) {
+					if (DeadTankArr[j].team == i) {
 						deadtankpop++;
 					}
 				}
@@ -5019,8 +5019,7 @@ void DemoGame(int type)
 
 
 
-	GAME_MAP_WIDTH = 2500; GAME_MAP_HEIGHT = 2500;
-	sf::FloatRect GameMapRect(0, 0, GAME_MAP_WIDTH, GAME_MAP_HEIGHT);
+	
 	if (type == -1) { type = rand() % 4; }
 
 	int repeat_no, repeat_no_max;
@@ -5028,27 +5027,16 @@ void DemoGame(int type)
 
 	// Adjust game Map Size
 
-	if (rand() % 2 == 0) {
-		GAME_MAP_WIDTH = 3200; GAME_MAP_HEIGHT = 3200;
-		GameMapRect = { 0, 0, GAME_MAP_WIDTH, GAME_MAP_HEIGHT };
-	}
-	if (rand() % 4 == 0) {
-		GAME_MAP_WIDTH = 4000; GAME_MAP_HEIGHT = 4000;
-		GameMapRect = { 0, 0, GAME_MAP_WIDTH, GAME_MAP_HEIGHT };
-	}
-	if (rand() % 3 == 0) {
-		GAME_MAP_WIDTH = 5000; GAME_MAP_HEIGHT = 5000;
-		GameMapRect = { 0, 0, GAME_MAP_WIDTH, GAME_MAP_HEIGHT };
-	}
-	if (rand() % 7 == 0) {
-		GAME_MAP_WIDTH = 8000; GAME_MAP_HEIGHT = 8000;
-		GameMapRect = { 0, 0, GAME_MAP_WIDTH, GAME_MAP_HEIGHT };
-	}
+	std::vector <float> size_array = { 2500, 3200, 4000, 5000, 8000 };
+	std::vector <float> fort_number_multiplier_array = { 0.6, 1, 1.25, 2, 2.5 };
+	int size_option = rand() % (int)size_array.size();
+
+	GAME_MAP_WIDTH = size_array[size_option];
+	GAME_MAP_HEIGHT = size_array[size_option];
+	sf::FloatRect GameMapRect(0, 0, GAME_MAP_WIDTH, GAME_MAP_HEIGHT);
 
 	float forts_per_team = (rand() % 10) + 4;
-	if (GAME_MAP_WIDTH == 4000) { forts_per_team *= 1.25; }
-	if (GAME_MAP_WIDTH == 5000) { forts_per_team *= 2; }
-	if (GAME_MAP_WIDTH == 8000) { forts_per_team *= 2.5; }
+	forts_per_team *= fort_number_multiplier_array[size_option];
 
 
 	// Random Map
@@ -5372,14 +5360,16 @@ void DemoGame(int type)
 
 	// Chaos Map
 	if (type == 3) {
-		if (GAME_MAP_WIDTH < 5000) { DemoGame(3); return; } 
+		if (GAME_MAP_WIDTH < 4000) { DemoGame(3); return; } 
 		if (eventLogging) { std::cout << "  Demogame 4: Chaos Game. Setting up..." << std::endl; }
 
 		SpawnGameText("Chaos Game", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 40, 5, 3, true);
+		
 
 		std::vector <int> team_arr;
 		int team_no = numberOfTeams;
 		forts_per_team *= (std::sqrt(16 / team_no) * .6);
+		if (GAME_MAP_WIDTH == 5000) { forts_per_team = (rand() % 5) + 12; }
 		if (GAME_MAP_WIDTH == 8000) { forts_per_team = (rand() % 6) + 15; }
 		
 		
@@ -5414,11 +5404,16 @@ void DemoGame(int type)
 					
 					
 					if (GameMapRect.contains(pos)) { repeat = false; }
+					float dx, dy;
+					dx = (GAME_MAP_WIDTH / 2) - pos.x;
+					dy = (GAME_MAP_HEIGHT / 2) - pos.y;
+					dis = std::sqrt(dx * dx + dy * dy);
+					if (dis > GAME_MAP_HEIGHT / 2) { repeat = true; continue; }
 					// Make Sure Forts are not too close
 					for (int k = 0; k < EntityArr.size(); k++) {
 						if (EntityArr[k].ID == "fort") {
-							float dx = pos.x - EntityArr[k].pos[0];
-							float dy = pos.y - EntityArr[k].pos[1];
+							dx = pos.x - EntityArr[k].pos[0];
+							dy = pos.y - EntityArr[k].pos[1];
 							dis = std::sqrt(dx * dx + dy * dy);
 							if (dis <= Fort_RANGE * 1.1 && EntityArr[k].team != team_arr[j]) { repeat = true; break; }
 							if (dis < Fort_RANGE * .33 && EntityArr[k].team == team_arr[j]) { repeat = true; break; }
@@ -5485,6 +5480,8 @@ void DemoGame(int type)
 	UpdateTiles();
 
 	loadGameButtons();
+	std::string text = std::to_string((int)GAME_MAP_WIDTH) + " x " + std::to_string((int)GAME_MAP_HEIGHT);
+	SpawnGameText(text, { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) + 50 }, { 255, 255, 255 }, 20, 5, 1, true);
 
 	if (eventLogging) { std::cout << "  DEMOGAME() executed" << std::endl; }
 }
