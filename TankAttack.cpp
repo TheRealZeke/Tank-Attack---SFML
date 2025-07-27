@@ -119,6 +119,8 @@ std::string OpenFileDialog(const char* filter = "All Files\0*.*\0", HWND owner =
 Entity* checkEntity(Entity* entity);
 std::vector<Tile*> getTileNeighbors(Tile& tile);
 
+void calculateTilePopulation();
+
 
 
 
@@ -168,6 +170,8 @@ sf::Font SecondaryFont;
 
 
 // float SCREEN_WIDTH = 1366; float SCREEN_HEIGHT = 768;
+
+int number_Of_Tiles = 0;
 float GAME_MAP_WIDTH = 2500; float GAME_MAP_HEIGHT = 2500;
 float MINIMAP_WIDTH = 250; float MINIMAP_HEIGHT = 250;
 
@@ -191,6 +195,7 @@ std::vector <std::vector <int>> TanksLostArr;
 std::vector <std::vector <int>> AverageTankAgeArr;
 std::vector <std::vector <int>> TeamTerritoryArr;
 std::vector <std::vector <int>> CapturedFortPopArr;
+std::vector <std::vector <int>> DeadTankPopArr;
 
 std::vector <std::vector <float>> SpecialTankRatioArr;
 std::vector <std::vector <float>> SpecialFortRatioArr;
@@ -2979,10 +2984,8 @@ public:
 			col.a *= 1.5;
 			
 			if (circle.getGlobalBounds().contains(Mouse_Pos)) {	// Mouse is over tile
-				renderText(window, { gx, gy }, std::to_string(grid_x) + "," + std::to_string(grid_y), GameFont, 15, col, 1, opp_col);
-				renderText(window, { gx, gy + 30 }, "Fort ID: " + std::to_string(FortID), SecondaryFont, 20, opp_col);
-				sf::Vector2f n_pos = { fort->pos[0] - Camera_Pos[0], fort->pos[1] - Camera_Pos[1]};
-				drawThickLine(window, { gx, gy }, n_pos, 3, opp_col);
+				renderText(window, { gx, gy }, std::to_string(grid_x) + "," + std::to_string(grid_y), SecondaryFont, 20, col, 1, { 0,0,0 });
+				renderText(window, { gx, gy + 20 }, "Fort ID: " + std::to_string(FortID), SecondaryFont, 16, col);
 			}
 			// Below code to draw lines to neighbors, enabled only for testing
 			if (false) {
@@ -3452,6 +3455,18 @@ int main()
 				pops.push_back(getFortPop(i, true));
 			}
 			CapturedFortPopArr.push_back(pops);
+			pops.clear();
+
+			for (int i = 0; i < numberOfTeams; i++) {
+				int deadtankpop = 0;
+				for (int j = 0; j < DeadTankArr.size(); j++) {
+					if (DeadTankArr[i].team == i) {
+						deadtankpop++;
+					}
+				}
+				pops.push_back(deadtankpop);
+			}
+			DeadTankPopArr.push_back(pops);
 			pops.clear();
 
 
@@ -4426,10 +4441,14 @@ void DrawUI(sf::RenderWindow &surface)
 
 	//Render Game Stats
 	if (DEBUG_FEATURES) {
-		std::string text = "Entities Loaded: " + std::to_string(EntityArr.size());
+		std::string text = "Entitities: " + std::to_string(EntityArr.size());
 		renderText(surface, { SCREEN_WIDTH - 75, 125 }, text, SecondaryFont, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
-		text = "Particles Loaded: " + std::to_string(ParticleArr.size());
+		text = "Particles: " + std::to_string(ParticleArr.size());
 		renderText(surface, { SCREEN_WIDTH - 75, 150 }, text, SecondaryFont, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
+		text = "Lasers: " + std::to_string(LaserArr.size());
+		renderText(surface, { SCREEN_WIDTH - 75, 175 }, text, SecondaryFont, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
+		text = "Dead Tanks:" + std::to_string(DeadTankArr.size());
+		renderText(surface, { SCREEN_WIDTH - 75, 200 }, text, SecondaryFont, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
 	}
 
 	// Show Team Stats
@@ -4865,7 +4884,7 @@ void UpdateTiles()
 	}
 
 	for (int i = 0; i < numberOfTeams; i++) {
-		TeamTilePerc[i] = TeamTileNo[i] * 100 / TileArr.size();
+		TeamTilePerc[i] = TeamTileNo[i] * 100 / number_Of_Tiles;
 	}
 
 	if (eventLogging) { std::cout << "  Tiles Updated" << std::endl; }
@@ -4904,6 +4923,8 @@ void InitTiles()
 		TileArr.push_back(row_of_Tiles);		// Add the current row of tiles to the TileArr	
 		cy++;
 	}
+
+	calculateTilePopulation();
 
 	// Set neighbors for each tile
 	for (int i = 0; i < TileArr.size(); i++) {
@@ -4985,6 +5006,7 @@ void DemoGame(int type)
 	TankPopArr.clear();
 	FortPopArr.clear();
 	CapturedFortPopArr.clear();
+	DeadTankPopArr.clear();
 	CapturedFortRatioArr.clear();
 	SpecialTankPopArr.clear();
 	SpecialTankRatioArr.clear();
@@ -5026,7 +5048,7 @@ void DemoGame(int type)
 	float forts_per_team = (rand() % 10) + 4;
 	if (GAME_MAP_WIDTH == 4000) { forts_per_team *= 1.25; }
 	if (GAME_MAP_WIDTH == 5000) { forts_per_team *= 2; }
-	if (GAME_MAP_WIDTH == 8000) { forts_per_team *= 3; }
+	if (GAME_MAP_WIDTH == 8000) { forts_per_team *= 2.5; }
 
 
 	// Random Map
@@ -5040,7 +5062,7 @@ void DemoGame(int type)
 		SpawnGameText("Random Game", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 40, 5, 2, true);
 
 		int team_no = (rand() % (numberOfTeams - 1)) + 2;
-		forts_per_team *= std::sqrt(16 / team_no);
+		forts_per_team *= (std::sqrt(16 / team_no)) * 1;
 
 
 		if (RandomMapDebug) { std::cout << "Number of Teams: " + std::to_string(team_no) << std::endl; }
@@ -5088,7 +5110,7 @@ void DemoGame(int type)
 			center_repeat = true;
 			while (center_repeat) {
 				center_repeat = false;
-				if (repeat_no >= repeat_no_max) { EntityArr.clear(); std::cout << "Random Map Generation failed!" << std::endl;  DemoGame(); return; }
+				if (repeat_no >= repeat_no_max) { EntityArr.clear(); std::cout << "Random Map Generation failed!" << std::endl;  DemoGame(0); return; }
 				repeat_no += 1;
 
 				// Choose Center Point
@@ -5328,6 +5350,13 @@ void DemoGame(int type)
 
 							if (team_arr[j] != EntityArr[k].team) { if (dis < Fort_RANGE * 1) { repeat = true; } }
 							else { if (dis < Fort_RANGE * .4) { repeat = true; } }
+
+
+							dx = (GAME_MAP_WIDTH / 2) - fort_pos.x;
+							dy = (GAME_MAP_HEIGHT / 2) - fort_pos.y;
+							dis = std::sqrt(dx * dx + dy * dy);
+
+							if (dis > GAME_MAP_HEIGHT / 2) { repeat = true; }
 						}
 					}
 				}
@@ -5343,15 +5372,15 @@ void DemoGame(int type)
 
 	// Chaos Map
 	if (type == 3) {
-		//if (GAME_MAP_WIDTH < 5000) { DemoGame(3); return; } 
+		if (GAME_MAP_WIDTH < 5000) { DemoGame(3); return; } 
 		if (eventLogging) { std::cout << "  Demogame 4: Chaos Game. Setting up..." << std::endl; }
 
 		SpawnGameText("Chaos Game", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 40, 5, 3, true);
 
 		std::vector <int> team_arr;
 		int team_no = numberOfTeams;
-		forts_per_team *= (std::sqrt(16 / team_no) * .75);
-		
+		forts_per_team *= (std::sqrt(16 / team_no) * .6);
+		if (GAME_MAP_WIDTH == 8000) { forts_per_team = (rand() % 6) + 15; }
 		
 		
 		int forts_created = 0;
@@ -5411,44 +5440,47 @@ void DemoGame(int type)
 	}
 
 	// Identify and Make Center Fort Special
-	for (int team = 0; team < numberOfTeams; team++) {
-		sf::Vector2f teamCenter = { 0, 0 };
-		float fortCount = 0;
+	if (type != 3) {
+		for (int team = 0; team < numberOfTeams; team++) {
+			sf::Vector2f teamCenter = { 0, 0 };
+			float fortCount = 0;
 
-		// Calculate the center position of all forts for this team
-		for (auto& entity : EntityArr) {
-			if (entity.ID == "fort" && entity.team == team) {
-				teamCenter.x += entity.pos[0];
-				teamCenter.y += entity.pos[1];
-				fortCount += 1;
-			}
-		}
-
-		if (fortCount > 0) {
-			teamCenter.x /= fortCount;
-			teamCenter.y /= fortCount;
-
-			// Find the Fort closest to the center
-			Entity* closestFort = nullptr;
-			float closestDistance = 100'000;
-
+			// Calculate the center position of all forts for this team
 			for (auto& entity : EntityArr) {
 				if (entity.ID == "fort" && entity.team == team) {
-					sf::Vector2f entity_pos = { entity.pos[0], entity.pos[1] };
-					float distance = displacement(entity_pos, teamCenter);
-					if (distance < closestDistance) {
-						closestDistance = distance;
-						closestFort = &entity;
-					}
+					teamCenter.x += entity.pos[0];
+					teamCenter.y += entity.pos[1];
+					fortCount += 1;
 				}
 			}
 
-			// Mark the closest Fort as special
-			if (closestFort) {
-				closestFort->fort_level = 1;
+			if (fortCount > 0) {
+				teamCenter.x /= fortCount;
+				teamCenter.y /= fortCount;
+
+				// Find the Fort closest to the center
+				Entity* closestFort = nullptr;
+				float closestDistance = 100'000;
+
+				for (auto& entity : EntityArr) {
+					if (entity.ID == "fort" && entity.team == team) {
+						sf::Vector2f entity_pos = { entity.pos[0], entity.pos[1] };
+						float distance = displacement(entity_pos, teamCenter);
+						if (distance < closestDistance) {
+							closestDistance = distance;
+							closestFort = &entity;
+						}
+					}
+				}
+
+				// Mark the closest Fort as special
+				if (closestFort) {
+					closestFort->fort_level = 1;
+				}
 			}
 		}
 	}
+	
 	InitTiles();
 	UpdateTiles();
 
@@ -5589,6 +5621,17 @@ void saveJSONData()
 		outputFile << jsonArray.dump(4);
 		outputFile.close();
 	}
+
+	
+	// Dead Tank Population Array
+	jsonArray = json(DeadTankPopArr);
+	fileName = makePath("DeadTankPopArr.json");
+	outputFile.open(fileName);
+	if (outputFile.is_open()) {
+		outputFile << jsonArray.dump(4);
+		outputFile.close();
+	}
+
 
 	// Captured Fort Ratio Array
 	jsonArray = json(CapturedFortRatioArr);
@@ -5808,4 +5851,14 @@ std::vector<Tile*> getTileNeighbors(Tile& tile) {
 		}
 	}
 	return neighbors;
+}
+	
+void calculateTilePopulation() {
+	int x = 0;
+	for (int i = 0; i < TileArr.size(); i++) {
+		for (int j = 0; j < TileArr[i].size(); j++) {
+			x++;
+		}
+	}
+	number_Of_Tiles = x;
 }
