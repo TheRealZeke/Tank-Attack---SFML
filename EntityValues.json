@@ -11,7 +11,7 @@
 	
 	"Fort_HP": 1000.0,
 	"Fort_RANGE": 300,
-	"Fort_DAMAGE": 75,
+	"Fort_DAMAGE": 45,
 
 	"Fort_SIZE": 25,
 	"Fort_SPAWNTANK_TIME": 1200,

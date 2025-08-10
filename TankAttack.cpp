@@ -2558,8 +2558,9 @@ void Entity::draw()
 		float x0 = round(pos[0] - Camera_Pos[0]); float y0 = round(pos[1] - Camera_Pos[1]);
 		float x1, y1, x2, y2;
 		float x, y;
-		float ratio;
+		float ratio, _ratio;
 		float tmp_size;
+		sf::Color temp_col;
 		
 		sf::FloatRect tmp_rect, shadow_rect;
 
@@ -2576,14 +2577,14 @@ void Entity::draw()
 		
 		col.a = (sf::Uint8)(flicker_ratio + 8);
 		if (draw_transp_fort && Tank_spawn_timer > 0) {
-
-			if (fort_level != 0) {
-				drawFilledCircle(window, { x0, y0 }, Fort_RANGE * TransRangeFort * .8, col);
-				drawCircle(window, { x0, y0 }, Fort_RANGE * TransRangeFort * 1, col, 4);
-			}
-			else {
-				drawFilledCircle(window, { x0, y0 }, Fort_RANGE * TransRangeFort * .8, col);
-			}
+			ratio = .5 * (Tank_spawn_timer / max_Tank_spawn_time);
+			_ratio = .5 - ratio;
+			temp_col =	{(sf::Uint8)(col.r * _ratio + opp_col.r * ratio),
+						(sf::Uint8)(col.g * _ratio + opp_col.g * ratio),
+						(sf::Uint8)(col.b * _ratio + opp_col.b * ratio),
+						col.a };
+			drawFilledCircle(window, { x0, y0 }, Fort_RANGE * TransRangeFort * .8, temp_col);
+			if (fort_level != 0) { drawCircle(window, { x0, y0 }, Fort_RANGE * TransRangeFort * 1, col, 4); }
 		}
 
 		// Draw Health bar
@@ -2668,23 +2669,13 @@ void Entity::draw()
 
 
 		// Draw Fort Info
-		if (draw_fort_stats && Tank_spawn_timer > 0) {
-			float h_size = tmp_size / 2;
-			x = pos[0] - tmp_size; y = pos[1] - tmp_size;
-			x -= Camera_Pos[0]; y -= Camera_Pos[1];
-
-
-			ratio = round(Tank_spawn_timer * (tmp_size * 2) / max_Tank_spawn_time);
-
-			y += 5; col.a = 128;
-			tmp_rect = { x, y, tmp_size * 2, 2 };
-
-			drawFilledRect(window, tmp_rect, col);
-			if (ratio < 0) { ratio = 0; }
-			tmp_rect = { x, y, ratio, 2 };
-
-			col.a = 255;
-			drawFilledRect(window, tmp_rect, col);
+		if (draw_fort_stats && Tank_spawn_timer > 0 && false) {
+			ratio = Tank_spawn_timer / max_Tank_spawn_time;
+			col.a = 128;
+			opp_col.a = 16;
+			if (ratio < 0) { ratio = 0; }	
+			drawFilledCircle(window, { x0, y0 }, Tank_RANGE * TransRangeFort * ratio, opp_col);
+			col.a = 255; opp_col.a = 255;
 		}
 
 
