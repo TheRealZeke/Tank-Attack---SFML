@@ -153,6 +153,7 @@
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Audio.json" />
     <None Include="EntityValues.json" />
     <None Include="GameRules.json" />
     <None Include="Graphics.json" />

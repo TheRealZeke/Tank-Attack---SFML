@@ -42,6 +42,7 @@
     <None Include="Graphics.json">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="Audio.json" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Tank Attack - SFML.rc">

@@ -136,32 +136,49 @@ int summonTeam = 0;
 
 
 // SFX and Music
+
+std::ifstream AudioFile("Audio.json");
+json _jsonAudioData = json::parse(AudioFile);
+const std::string background_Music_file = _jsonAudioData["background_music_file"];
+
 sf::Music background_Music;
+const int background_Music_Volume = _jsonAudioData["volumes"]["background"];
 
 sf::SoundBuffer b_tankshoot01;
 sf::Sound tankshoot01(b_tankshoot01);
+const int tankshoot01_Volume = _jsonAudioData["volumes"]["tankshoot"];
+
 sf::SoundBuffer b_tankshoot02;
 sf::Sound tankshoot02(b_tankshoot02);
+const int tankshoot02_Volume = _jsonAudioData["volumes"]["tankshoot"];
 
 sf::SoundBuffer b_fortshoot01;
 sf::Sound fortshoot01(b_fortshoot01);
+const int fortshoot01_Volume = _jsonAudioData["volumes"]["fortshoot"];
 
 sf::SoundBuffer b_tankdies01;
 sf::Sound tankdies01(b_tankdies01);
+const int tankdies01_Volume = _jsonAudioData["volumes"]["tankdies"];
+
 sf::SoundBuffer b_tankdies02;
 sf::Sound tankdies02(b_tankdies02);
+const int tankdies02_Volume = _jsonAudioData["volumes"]["tankdies"];
 
 sf::SoundBuffer b_fortcaptured01;
 sf::Sound fortcaptured01(b_fortcaptured01);
+const int fortcaptured01_Volume = _jsonAudioData["volumes"]["fortcaptured"];
 
 sf::SoundBuffer b_laserhit01;
 sf::Sound laserhit01(b_laserhit01);
+const int laserhit01_Volume = _jsonAudioData["volumes"]["laserhit"];
 
 sf::SoundBuffer b_tankreload01;
 sf::Sound tankreload01(b_tankreload01);
+const int tankreload01_Volume = _jsonAudioData["volumes"]["tankreload"];
 
 sf::SoundBuffer b_tankcreated01;
 sf::Sound tankcreated01(b_tankcreated01);
+const int tankcreated01_Volume = _jsonAudioData["volumes"]["tankcreated"];
 
 
 // Game Fonts
@@ -3292,8 +3309,9 @@ int main()
 
 
 	// Load Sound Files and Music
-	background_Music.openFromFile("files/audio/SimpleRepeat.ogg");
+	background_Music.openFromFile(background_Music_file);
 	background_Music.play();
+	background_Music.setVolume(background_Music_Volume);
 	background_Music.setLoop(true);
 
 
@@ -3307,15 +3325,15 @@ int main()
 	b_tankdies02.loadFromFile("files/audio/tankdies2.wav");
 	b_tankcreated01.loadFromFile("files/audio/tankcreated.wav");
 
-	tankshoot01.setVolume(20);
-	tankshoot02.setVolume(20);
-	fortshoot01.setVolume(20);
-	laserhit01.setVolume(33);
-	tankdies01.setVolume(20);
-	tankdies02.setVolume(20);
-	tankreload01.setVolume(15);
-	tankcreated01.setVolume(5);
-	fortcaptured01.setVolume(45);
+	tankshoot01.setVolume(tankshoot01_Volume);
+	tankshoot02.setVolume(tankshoot02_Volume);
+	fortshoot01.setVolume(fortshoot01_Volume);
+	laserhit01.setVolume(laserhit01_Volume);
+	tankdies01.setVolume(tankdies01_Volume);
+	tankdies02.setVolume(tankdies02_Volume);
+	tankreload01.setVolume(tankreload01_Volume);
+	tankcreated01.setVolume(tankcreated01_Volume);
+	fortcaptured01.setVolume(fortcaptured01_Volume);
 
 
 	// Load Unit Texures
@@ -4019,17 +4037,18 @@ void keyboardInputs()
 		}
 	}
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Y) || sf::Keyboard::isKeyPressed(sf::Keyboard::H)) {
-		tankshoot01.setVolume(20 * game_volume / 100);
-		tankshoot02.setVolume(20 * game_volume / 100);
-		fortshoot01.setVolume(20 * game_volume / 100);
-		laserhit01.setVolume(33 * game_volume / 100);
-		tankdies01.setVolume(20 * game_volume / 100);
-		tankdies02.setVolume(20 * game_volume / 100);
-		tankreload01.setVolume(15 * game_volume / 100);
-		tankcreated01.setVolume(5 * game_volume / 100);
-		fortcaptured01.setVolume(250 * game_volume / 100);
+		
+		tankshoot01.setVolume(tankshoot01_Volume * game_volume / 100);
+		tankshoot02.setVolume(tankshoot02_Volume * game_volume / 100);
+		fortshoot01.setVolume(fortshoot01_Volume * game_volume / 100);
+		laserhit01.setVolume(laserhit01_Volume * game_volume / 100);
+		tankdies01.setVolume(tankdies01_Volume * game_volume / 100);
+		tankdies02.setVolume(tankdies02_Volume * game_volume / 100);
+		tankreload01.setVolume(tankreload01_Volume * game_volume / 100);
+		tankcreated01.setVolume(tankcreated01_Volume * game_volume / 100);
+		fortcaptured01.setVolume(fortcaptured01_Volume * game_volume / 100);
 
-		background_Music.setVolume(game_volume);
+		background_Music.setVolume(background_Music_Volume * game_volume / 100);
 	}
 	
 
@@ -5360,8 +5379,8 @@ void DemoGame(int type)
 		std::vector <int> team_arr;
 		int team_no = numberOfTeams;
 		forts_per_team *= (std::sqrt(16 / team_no) * .6);
-		if (GAME_MAP_WIDTH == 5000) { forts_per_team = (rand() % 5) + 12; }
-		if (GAME_MAP_WIDTH == 8000) { forts_per_team = (rand() % 6) + 15; }
+		if (GAME_MAP_WIDTH == 5000) { forts_per_team = (rand() % 9) + 8; }
+		if (GAME_MAP_WIDTH == 8000) { forts_per_team = (rand() % 9) + 10; }
 		
 		
 		int forts_created = 0;
@@ -5407,7 +5426,7 @@ void DemoGame(int type)
 							dy = pos.y - EntityArr[k].pos[1];
 							dis = std::sqrt(dx * dx + dy * dy);
 							if (dis <= Fort_RANGE * 1.1 && EntityArr[k].team != team_arr[j]) { repeat = true; break; }
-							if (dis < Fort_RANGE * .33 && EntityArr[k].team == team_arr[j]) { repeat = true; break; }
+							if (dis < Fort_RANGE * .9 && EntityArr[k].team == team_arr[j]) { repeat = true; break; }
 						}
 					}
 				}
