@@ -14,6 +14,9 @@
 #include <sstream>
 #include <chrono>
 #include <format>
+#include <string>
+#include <cctype>
+#include <climits>
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -93,7 +96,7 @@ sf::Color dimCol(sf::Color col, float perc);
 sf::Color oppCol(const sf::Color& col);
 sf::Color stage_Colour();
 
-int getTankPop(int team);
+int getTankPop(int team, int mode = 0);
 int getFortPop(int team, bool captured = false);
 int getSpecialTankPop(int team);
 int getSpecialFortPop(int team);
@@ -120,7 +123,9 @@ Entity* checkEntity(Entity* entity);
 std::vector<Tile*> getTileNeighbors(Tile& tile);
 
 void calculateTilePopulation();
+bool enemies(int my_team, int their_team);
 
+std::string roundToDecimalPlaces(double value, int n);
 
 
 
@@ -224,6 +229,7 @@ std::vector <int> temp_Fort_Pop;
 std::vector <int> temp_Captured_Fort_Pop;
 std::vector <int> temp_Special_Tank_Pop;
 std::vector <int> temp_Special_Fort_Pop;
+
 
 int FPS = 60;
 
@@ -479,6 +485,10 @@ int extra_population = 0;
 
 std::vector <std::array <float, 2>> TankDeathPositions;
 
+float totalClaimedTiles = 0;
+float totalTankPop = 0;
+bool gangUp = false;
+int victimTeam = 0;
 // GAME VARIABLES END //////////////////////////////////////
 
 
@@ -825,7 +835,7 @@ public:
 			enemy = nullptr;
 			target_pos = { pos[0], pos[1] };
 			for (Entity &entity : EntityArr) {
-				if (entity.ia && entity.team != team) {
+                if (entity.ia && enemies(team, entity.team)) {
 					int dx = pos[0] - entity.pos[0];
 					int dy = pos[1] - entity.pos[1];
 
@@ -886,10 +896,8 @@ public:
 				double dx, dy, dis;
 				if (Tank_spawn_timer > 0) {
 					for (int i = 0; i < EntityArr.size(); i++) {
-						if (EntityArr[i].ia && EntityArr[i].team != team) {
+						if (EntityArr[i].ia && enemies(team, EntityArr[i].team)) {
 							if (FORTS_ATTACK_FORTS || EntityArr[i].ID == "tank") {
-								
-								
 								dx = pos[0] - EntityArr[i].pos[0];
 								dy = pos[1] - EntityArr[i].pos[1];
 								dis = std::sqrt(dx * dx + dy * dy);
@@ -900,7 +908,6 @@ public:
 									enemy = &EntityArr[i];
 									enemy_uID = EntityArr[i].uniqueID;
 								}
-							
 							}
 						}
 					}
@@ -1073,7 +1080,7 @@ public:
 		// Calculate Entity Collisions
 		if (eventLogging) { std::cout << "  Laser Collision check" << std::endl; }
 		for (Entity &entity : EntityArr) {
-			if (entity.ia && entity.team != team) {
+			if (entity.ia && enemies(team, entity.team)) {
 				if ((FORTS_ATTACK_FORTS || sender_ID != "fort" || entity.ID == "tank") && entity.hp >= 0) {
 					if (laserBoundingBox.intersects(entity.collisionRect())) {
 						if (checkLineCollision(entity.collisionRect(), pos, last_pos)) {
@@ -2909,7 +2916,9 @@ public:
 	void updateBorders() {
 		border_tile = false;
 		for (Tile* tile : neighbors) {
-			if (tile->team != team) {
+			if ((!gangUp && tile->team != team) ||
+				(gangUp && ((team != victimTeam && tile->team == victimTeam) ||
+					(team == victimTeam && tile->team != team)))) {
 				border_tile = true;
 				break;
 			}
@@ -3230,6 +3239,22 @@ public:
 		}
 		else if (action == numberOfTeams + 3) {
 			summonTeam = -1;
+		}
+		else if (action == numberOfTeams + 4) {
+			gangUp = !gangUp;
+			int fort_pop, highest_fort_pop, index;
+			highest_fort_pop = 0;
+			index = -1;
+			for (int i = 0; i < numberOfTeams; i++) {
+				fort_pop = FortPopArr[FortPopArr.size() - 1][i];
+				if (fort_pop > highest_fort_pop) {
+					highest_fort_pop = fort_pop;
+					index = i;
+				}
+			}
+			victimTeam = index;
+			std::string text = gangUp ? "Game Up: ON" : "Game Up: OFF";
+			SpawnGameText(text, { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 30, 1, 2, false);
 		}
 		else {
 			if (action > 1 && action < numberOfTeams + 2) {
@@ -4120,7 +4145,7 @@ void RenderEntities()
 {
 	if (eventLogging) { std::cout << "/RENDERENTITIES()/" << std::endl; }
 
-
+	
 	// Draw Tanks first, then forts
 	for (auto& entity: EntityArr) {
 		if (entity.ID == "tank" && entity.ia) {
@@ -4149,6 +4174,13 @@ void RenderEntities()
 			[](const Entity& e) { return !e.ia; }),
 		EntityArr.end()
 	);
+
+	totalTankPop = 0;
+	for (auto& entity : EntityArr) {
+		if (entity.ID == "tank" && entity.ia) {
+			totalTankPop += 1; // Count Total Tank Population
+		}
+	}
 
 	//shuffle EntityArr
 
@@ -4482,10 +4514,13 @@ void DrawUI(sf::RenderWindow &surface)
 		std::string text;
 
 		if (!DEBUG_FEATURES) {
-			text = "Forts: " + std::to_string(k) + "[" + std::to_string(getSpecialFortPop(j)) + "]   (" + std::to_string(int(TeamTilePerc[j])) + "%)";
+			text = std::format("Forts: {}[{}]   ({}%)", k, getFortPop(j) - getFortPop(j, true), std::round(TeamTilePerc[j]));
 		}
 		else {
-			text = "Forts: " + std::to_string(k) + "  C/L: " + std::to_string(Forts_Destroyed[j]) + "/" + std::to_string(Forts_Lost[j]);
+			text = std::format("Forts: [{}][{}][{}]",	getFortPop(j) - getFortPop(j, true) - getSpecialFortPop(j),
+																getSpecialFortPop(j),
+																getFortPop(j, true));
+			text += "  (" + roundToDecimalPlaces(TeamTilePerc[j], 1) + "%)";
 		}
 		
 
@@ -4505,18 +4540,19 @@ void DrawUI(sf::RenderWindow &surface)
 	// sort team list
 	sort(teamList.begin(), teamList.end(), compareTeam);
 	// Display Team Tank Stats
+	std::string text;
 	for (int i = 0; i < teamList.size(); i++) {
 		j = teamList[i][0]; k = teamList[i][1];
 		n_col = colorArr[j]; n_col.a = 128;
 		if (DEBUG_FEATURES) {
-			renderText(surface, { 5, 75.f + (25 * i) + last_y }, "Tanks: " + std::to_string(k) + "   K/D: " + std::to_string(Tanks_Killed[j]) + "/" + std::to_string(Tanks_Lost[j]),
-				SecondaryFont, 20, n_col, 1, { 0,0,0,n_col.a }, false);
+			//text = "Tanks: " + std::to_string(k) + "   K/D: " + std::to_string(Tanks_Killed[j]) + "/" + std::to_string(Tanks_Lost[j]);
+			text = std::format("Tanks: [{}][{}] ({}%)", getTankPop(j, 1), getTankPop(j, 2), std::stof(roundToDecimalPlaces(getTankPop(j) * 100 / totalTankPop, 1)));
 		}
 		else {
-			renderText(surface, { 5, 75.f + (25 * i) + last_y }, "Tanks: " + std::to_string(k) + "[" + std::to_string(getSpecialTankPop(j)) + "]",
-				SecondaryFont, 20, n_col, 1, { 0,0,0,n_col.a }, false);
+			//text = "Tanks: " + std::to_string(k) + "[" + std::to_string(getSpecialTankPop(j)) + "]";
+			text = std::format("Tanks: {}[{}]", k, getSpecialTankPop(j));
 		}
-		
+		renderText(surface, { 5, 75.f + (25 * i) + last_y }, text, SecondaryFont, 20, n_col, 1, { 0,0,0,n_col.a }, false);
 	}
 	
 
@@ -4785,12 +4821,23 @@ void updateStageColour()
 	StageColour = stage_Colour();
 }
 
-int getTankPop(int team)
+int getTankPop(int team, int mode)
 {
 	int num = 0;
 	for (int i = 0; i < EntityArr.size(); i++) {
 		if (EntityArr[i].ID == "tank" && EntityArr[i].team == team) {
-			num++;
+			if (mode == 0) {
+				num++;  // Count all tanks
+			}else if(mode == 1) {
+				if (!EntityArr[i].no_ammo) {
+					num++;	// Count only tanks with ammo
+				}
+			}
+			else if (mode == 2) {
+				if (EntityArr[i].no_ammo) {
+					num++;	// Count only tanks with no ammo
+				}
+			}
 		}
 	}
 	return num;
@@ -4853,11 +4900,11 @@ void UpdateTiles()
 		TeamTileNo[i] = 0;
 		TeamTilePerc[i] = 0;
 	}
-
+	totalClaimedTiles = 0;
 	for (auto& row_of_Tiles : TileArr) {
 		for (Tile& tile : row_of_Tiles) {
 			tile.update();
-			if (tile.team != -1) { TeamTileNo[tile.team] += 1; }
+			if (tile.team != -1) { TeamTileNo[tile.team] += 1; totalClaimedTiles += 1; }
 		}
 	}
 
@@ -4894,7 +4941,12 @@ void UpdateTiles()
 	}
 
 	for (int i = 0; i < numberOfTeams; i++) {
-		TeamTilePerc[i] = TeamTileNo[i] * 100 / number_Of_Tiles;
+		if (totalClaimedTiles != 0) {
+			TeamTilePerc[i] = (float)((float)TeamTileNo[i] * 100.0f / (float)totalClaimedTiles);
+		}
+		else {
+			TeamTilePerc[i] = 0.0f; // Avoid division by zero
+		}
 	}
 
 	if (eventLogging) { std::cout << "  Tiles Updated" << std::endl; }
@@ -5380,7 +5432,7 @@ void DemoGame(int type)
 		int team_no = numberOfTeams;
 		forts_per_team *= (std::sqrt(16 / team_no) * .6);
 		if (GAME_MAP_WIDTH == 5000) { forts_per_team = (rand() % 9) + 8; }
-		if (GAME_MAP_WIDTH == 8000) { forts_per_team = (rand() % 9) + 10; }
+		if (GAME_MAP_WIDTH == 8000) { forts_per_team = (rand() % 5) + 14; }
 		
 		
 		int forts_created = 0;
@@ -5522,6 +5574,7 @@ void loadGameButtons() {
 	SpawnButton({ 50, SCREEN_HEIGHT - 40 }, { 50,25 }, "RANDOM", { 20,40,200 }, 1, 16);
 	SpawnButton({ 110, SCREEN_HEIGHT - 40 }, { 50, 25 }, "DELETE", { 40,40,40 }, numberOfTeams + 2, 16);
 	SpawnButton({ 170, SCREEN_HEIGHT - 40 }, { 75, 25 }, "NULL TEAM", { 200,200,200 }, numberOfTeams + 3, 16);
+	SpawnButton({ 255, SCREEN_HEIGHT - 40 }, { 60, 25 }, "GANG UP", { 100,160,20 }, numberOfTeams + 4, 16);
 	
 
 	
@@ -5868,4 +5921,78 @@ void calculateTilePopulation() {
 		}
 	}
 	number_Of_Tiles = x;
+}
+
+
+bool enemies(int my_team, int their_team) {
+	if ((!gangUp && their_team != my_team) ||
+		(gangUp && ((my_team != victimTeam && their_team == victimTeam) ||
+			(my_team == victimTeam && their_team != my_team)))) {
+		return true; // Enemies
+	}
+	return false; // Not enemies
+}
+
+std::string roundToDecimalPlaces(double value, int n) {
+	if (!std::isfinite(value)) {
+		return std::to_string(value);
+	}
+
+	if (n < 0) {
+		n = 0;
+	}
+
+	if (n == 0) {
+		long long rounded_int = static_cast<long long>(std::round(value));
+		return std::to_string(rounded_int);
+	}
+
+	if (n <= 18) {
+		long long factor_ll = 1;
+		for (int i = 0; i < n; ++i) {
+			factor_ll *= 10;
+		}
+
+		double scaled = value * static_cast<double>(factor_ll);
+		scaled = std::round(scaled);
+
+		if (scaled > static_cast<double>(LLONG_MAX) || scaled < static_cast<double>(LLONG_MIN)) {
+			double rounded_value = scaled / static_cast<double>(factor_ll);
+			std::stringstream ss;
+			ss << std::fixed << std::setprecision(n) << rounded_value;
+			return ss.str();
+		}
+
+		long long scaled_int = static_cast<long long>(scaled);
+		bool is_negative = false;
+		if (scaled_int < 0) {
+			is_negative = true;
+			scaled_int = -scaled_int;
+		}
+
+		long long integer_part = scaled_int / factor_ll;
+		long long fractional_part = scaled_int % factor_ll;
+
+		std::string integer_str = std::to_string(integer_part);
+		std::string fractional_str = std::to_string(fractional_part);
+		if (fractional_str.length() < static_cast<size_t>(n)) {
+			fractional_str = std::string(n - fractional_str.length(), '0') + fractional_str;
+		}
+
+		std::string result = integer_str + '.' + fractional_str;
+		if (is_negative) {
+			result = '-' + result;
+		}
+		return result;
+	}
+	else {
+		double factor = std::pow(10.0, n);
+		double scaled = value * factor;
+		scaled = std::round(scaled);
+		double rounded_value = scaled / factor;
+
+		std::stringstream ss;
+		ss << std::fixed << std::setprecision(n) << rounded_value;
+		return ss.str();
+	}
 }
