@@ -5478,7 +5478,7 @@ void DemoGame(int type)
 							dy = pos.y - EntityArr[k].pos[1];
 							dis = std::sqrt(dx * dx + dy * dy);
 							if (dis <= Fort_RANGE * 1.1 && EntityArr[k].team != team_arr[j]) { repeat = true; break; }
-							if (dis < Fort_RANGE * .9 && EntityArr[k].team == team_arr[j]) { repeat = true; break; }
+							if (dis < Fort_RANGE * 2.1 && EntityArr[k].team == team_arr[j]) { repeat = true; break; }
 						}
 					}
 				}
