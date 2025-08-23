@@ -16,6 +16,11 @@ colorArr = [
     for r, g, b in colors
 ]
 
+colorArr_light = [
+    (r/255.0, g/255.0, b/255.0, 0.25)
+    for r, g, b in colors
+]
+
 os.chdir("Game Data")
 
 def plot_population(file_path, axis, title):
@@ -27,6 +32,15 @@ def plot_population(file_path, axis, title):
         array_y = list(range(len(data)))
         axis.plot(array_y, array_x, c=colorArr[team])
     axis.set_ylabel(title)
+    
+def plot_total(file_path, axis, title):
+    with open(file_path) as file:
+        data = json.load(file)
+        array_x = [data[j] for j in range(len(data))]
+        array_y = list(range(len(data)))
+        axis.plot(array_y, array_x, c='#000000')
+    axis.set_ylabel(title)
+    axis.set_xlabel("Time (ticks)")
 
 def plot_scatter(file_path1, file_path2, axis, xlabel, ylabel, dots=False):
     with open(file_path1) as file1, open(file_path2) as file2:
@@ -43,14 +57,17 @@ def plot_scatter(file_path1, file_path2, axis, xlabel, ylabel, dots=False):
     axis.set_xlabel(xlabel)
     axis.set_ylabel(ylabel)
 
-def plot_over_time(file_path, axis, ylabel):
+def plot_over_time(file_path, axis, ylabel, faint = False):
     with open(file_path) as file:
         data = json.load(file)
     team_no = len(data[0])
     for team in range(team_no):
         array = [data[i][team] for i in range(len(data))]
         normal_array = list(range(len(data)))
-        axis.plot(normal_array, array, c=colorArr[team])
+        if not faint:
+            axis.plot(normal_array, array, c=colorArr[team])
+        else:
+            axis.plot(normal_array, array, c=colorArr_light[team])
     axis.set_ylabel(ylabel)
     axis.set_xlabel("Time (ticks)")
 
@@ -96,7 +113,52 @@ def plot_ratio_against_x(numerator_file, denominator_file, x_file, axis, xlabel,
 
 
 
-# Population plots
+
+fig, ax = plt.subplots(1)
+plot_over_time("TankPop.json", ax, "Tank Population")
+plt.show()
+fig, ax = plt.subplots(1)
+plot_over_time("FortPop.json", ax, "Fort Population")
+plt.show()
+fig, ax = plt.subplots(1)
+plot_over_time("AverageTankAge.json", ax, "Average Tank Age")
+plt.show()
+fig, ax = plt.subplots(1)
+plot_over_time("DeadTankPopArr.json", ax, "Dead Tank Population", True)
+plot_total("TotalDeadTankNoArr.json", ax, "Total Dead Tanks")
+plt.show()
+fig, ax = plt.subplots(1)
+plot_over_time("SpecialTankPop.json", ax, "Special Tank Population")
+plt.show()
+fig, ax = plt.subplots(1)
+plot_over_time("SpecialFortPop.json", ax, "Special Fort Population")
+plt.show()
+
+
+
+
+# Scatter plot for Tanks Killed/Lost
+fig, ax = plt.subplots(1, 2)
+plot_scatter("TanksLost.json", "TanksKilled.json", ax[0], "Tanks Lost", "Tanks Killed")
+plot_scatter("SpecialTankRatio.json", "AverageTankAge.json", ax[1], "Special Tank Ratio", "Average Tank Age", True)
+plt.show()
+
+
+
+
+
+
+# fig, ax = plt.subplots(1)
+# plot_scatter("TankPop.json", "FortPop.json", ax, "Tanks", "Forts", True)
+# plt.show()
+
+# fig, ax = plt.subplots(2,2)
+# plot_scatter("CapturedFortRatio.json", "SpecialFortRatio.json", ax[0,0], "Assimilating Forts Ratio", "Special Forts Ratio", True)
+# plot_ratio("Territory.json", "FortPop.json", ax[0,1], "Territory - Fort Population ratio")
+# plot_scatter("SpecialFortRatio.json", "SpecialTankRatio.json", ax[1,0], "Special Forts Ratio", "Special Tanks Ratio", True)
+# plot_ratio_against_x("Territory.json", "FortPop.json", "AverageTankAge.json", ax[1,1], "Average Tank Age", "Territory - Fort Population ratio", True)
+# plt.show()
+
 fig, axs = plt.subplots(3, 4)
 plot_population("TankPop.json", axs[0, 0], "Tank Population")
 plot_population("FortPop.json", axs[0, 1], "Fort Population")
@@ -113,24 +175,3 @@ plot_over_time("CapturedFortRatio.json", axs[0, 3], "Captured Fort Ratio")
 plot_over_time("SpecialTankRatio.json", axs[1, 3], "Special Tank Ratio")
 plot_over_time("DeadTankPopArr.json", axs[2, 3], "Dead Tank Population")
 plt.show()
-
-# Scatter plot for Tanks Killed/Lost
-fig, ax = plt.subplots(1)
-plot_scatter("TanksLost.json", "TanksKilled.json", ax, "Tanks Lost", "Tanks Killed")
-plt.show()
-
-fig, ax = plt.subplots(1)
-plot_scatter("SpecialTankRatio.json", "AverageTankAge.json", ax, "Special Tank Ratio", "Average Tank Age", True)
-plt.show()
-
-fig, ax = plt.subplots(1)
-plot_scatter("TankPop.json", "FortPop.json", ax, "Tanks", "Forts", True)
-plt.show()
-
-fig, ax = plt.subplots(2,2)
-plot_scatter("CapturedFortRatio.json", "SpecialFortRatio.json", ax[0,0], "Assimilating Forts Ratio", "Special Forts Ratio", True)
-plot_ratio("Territory.json", "FortPop.json", ax[0,1], "Territory - Fort Population ratio")
-plot_scatter("SpecialFortRatio.json", "SpecialTankRatio.json", ax[1,0], "Special Forts Ratio", "Special Tanks Ratio", True)
-plot_ratio_against_x("Territory.json", "FortPop.json", "AverageTankAge.json", ax[1,1], "Average Tank Age", "Territory - Fort Population ratio", True)
-plt.show()
-

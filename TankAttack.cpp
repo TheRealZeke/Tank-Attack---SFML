@@ -218,6 +218,8 @@ std::vector <std::vector <int>> AverageTankAgeArr;
 std::vector <std::vector <int>> TeamTerritoryArr;
 std::vector <std::vector <int>> CapturedFortPopArr;
 std::vector <std::vector <int>> DeadTankPopArr;
+std::vector <int> TotalDeadTankNoArr;
+std::vector <int> TotalLaserNoArr;
 
 std::vector <std::vector <float>> SpecialTankRatioArr;
 std::vector <std::vector <float>> SpecialFortRatioArr;
@@ -3435,8 +3437,21 @@ int main()
 		if (game_ticks > 1'000'000'000) { quitGame = true; }
 
 		if (game_ticks % 4 == 0) { updateStats(); }
-		extra_population = round(current_game_timer / extra_population_interval) * extra_population_quanta;
-		if (game_ticks % 45 == 0) { std::cout << "Current Game Timer: " << current_game_timer << "| Extra Population: " << extra_population << std::endl; }
+		if (game_ticks % extra_population_interval == 0) {
+			bool max_pop_reached = false;
+			for (int i = 0; i < numberOfTeams; i++) {
+				if (getTankPop(i) >= extra_population + 16) {
+					max_pop_reached = true;
+					break;
+				}
+			}
+			if (max_pop_reached) {
+				extra_population += extra_population_quanta;
+				std::cout << "Current Game Timer: " << current_game_timer << "| Extra Population: " << extra_population << std::endl;
+			}
+		}
+		
+		//if (game_ticks % 45 == 0) { std::cout << "Current Game Timer: " << current_game_timer << "| Extra Population: " << extra_population << std::endl; }
 
 
 
@@ -3491,6 +3506,7 @@ int main()
 			CapturedFortPopArr.push_back(pops);
 			pops.clear();
 
+			int TotalDeadTanks = 0;
 			for (int i = 0; i < numberOfTeams; i++) {
 				int deadtankpop = 0;
 				for (int j = 0; j < DeadTankArr.size(); j++) {
@@ -3499,8 +3515,10 @@ int main()
 					}
 				}
 				pops.push_back(deadtankpop);
+				TotalDeadTanks += deadtankpop;
 			}
 			DeadTankPopArr.push_back(pops);
+			TotalDeadTankNoArr.push_back(TotalDeadTanks);
 			pops.clear();
 
 
@@ -5079,6 +5097,8 @@ void DemoGame(int type)
 	AverageTankAgeArr.clear();
 	TeamTerritoryArr.clear();
 
+	TotalDeadTankNoArr.clear();
+
 
 
 	
@@ -5422,7 +5442,7 @@ void DemoGame(int type)
 
 	// Chaos Map
 	if (type == 3) {
-		if (GAME_MAP_WIDTH < 4000) { DemoGame(3); return; } 
+		if (GAME_MAP_WIDTH < 5000) { DemoGame(3); return; } 
 		if (eventLogging) { std::cout << "  Demogame 4: Chaos Game. Setting up..." << std::endl; }
 
 		SpawnGameText("Chaos Game", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 40, 5, 3, true);
@@ -5432,7 +5452,7 @@ void DemoGame(int type)
 		int team_no = numberOfTeams;
 		forts_per_team *= (std::sqrt(16 / team_no) * .6);
 		if (GAME_MAP_WIDTH == 5000) { forts_per_team = (rand() % 9) + 8; }
-		if (GAME_MAP_WIDTH == 8000) { forts_per_team = (rand() % 5) + 14; }
+		if (GAME_MAP_WIDTH == 8000) { forts_per_team = (rand() % 3) + 15; }
 		
 		
 		int forts_created = 0;
@@ -5477,8 +5497,8 @@ void DemoGame(int type)
 							dx = pos.x - EntityArr[k].pos[0];
 							dy = pos.y - EntityArr[k].pos[1];
 							dis = std::sqrt(dx * dx + dy * dy);
-							if (dis <= Fort_RANGE * 1.1 && EntityArr[k].team != team_arr[j]) { repeat = true; break; }
-							if (dis < Fort_RANGE * 2.1 && EntityArr[k].team == team_arr[j]) { repeat = true; break; }
+							if (dis <= Fort_RANGE * 1.2 && EntityArr[k].team != team_arr[j]) { repeat = true; break; }  // Keep Forts of different teams far away from each other
+							if (dis < Fort_RANGE * 2.5 && EntityArr[k].team == team_arr[j]) { repeat = true; break; }		// Keep Forts of same teams very far away from each other
 						}
 					}
 				}
@@ -5692,6 +5712,14 @@ void saveJSONData()
 		outputFile.close();
 	}
 
+	// Total Dead Tank Population
+	jsonArray = json(TotalDeadTankNoArr);
+	fileName = makePath("TotalDeadTankNoArr.json");
+	outputFile.open(fileName);
+	if (outputFile.is_open()) {
+		outputFile << jsonArray.dump(4);
+		outputFile.close();
+	}
 
 	// Captured Fort Ratio Array
 	jsonArray = json(CapturedFortRatioArr);
