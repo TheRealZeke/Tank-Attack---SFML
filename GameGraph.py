@@ -36,9 +36,27 @@ def plot_population(file_path, axis, title):
 def plot_total(file_path, axis, title):
     with open(file_path) as file:
         data = json.load(file)
-        array_x = [data[j] for j in range(len(data))]
+        array_x_total = [sum(data[i]) for i in range(len(data))]
         array_y = list(range(len(data)))
-        axis.plot(array_y, array_x, c='#000000')
+        axis.plot(array_y, array_x_total, c='#000000')
+    axis.set_ylabel(title)
+    axis.set_xlabel("Time (ticks)")
+    
+def plot_average(file_path, axis, title):
+    with open(file_path) as file:
+        data = json.load(file)
+        array_x_avg = []
+        for i in range(len(data)):
+            team_no = 0
+            for j in range(len(data[i])):
+                if data[i][j] != 0:
+                   team_no += 1
+            if team_no == 0:
+                array_x_avg.append(0)
+            else:
+                array_x_avg.append(sum(data[i]) / team_no)
+        array_y = list(range(len(data)))
+        axis.plot(array_y, array_x_avg, c='#000000', linestyle='dashed')
     axis.set_ylabel(title)
     axis.set_xlabel("Time (ticks)")
 
@@ -115,19 +133,22 @@ def plot_ratio_against_x(numerator_file, denominator_file, x_file, axis, xlabel,
 
 
 fig, ax = plt.subplots(1)
+plot_total("TankPop.json", ax, "Total Tanks")
 plot_over_time("TankPop.json", ax, "Tank Population")
 plt.show()
 fig, ax = plt.subplots(1)
 plot_over_time("FortPop.json", ax, "Fort Population")
 plt.show()
 fig, ax = plt.subplots(1)
+plot_average("AverageTankAge.json", ax, "Average Tank Age")
 plot_over_time("AverageTankAge.json", ax, "Average Tank Age")
 plt.show()
 fig, ax = plt.subplots(1)
 plot_over_time("DeadTankPopArr.json", ax, "Dead Tank Population", True)
-plot_total("TotalDeadTankNoArr.json", ax, "Total Dead Tanks")
+plot_total("DeadTankPopArr.json", ax, "Total Dead Tanks")
 plt.show()
 fig, ax = plt.subplots(1)
+plot_total("SpecialTankPop.json", ax, "Total Special Tanks")
 plot_over_time("SpecialTankPop.json", ax, "Special Tank Population")
 plt.show()
 fig, ax = plt.subplots(1)

@@ -71,7 +71,7 @@ void RenderButtons();
 
 
 void SpawnTank(sf::Vector2f pos, int team, int level = 0, bool no_ammo = false);
-void SpawnFort(sf::Vector2f pos, int team, bool captured = false, bool special = false);
+void SpawnFort(sf::Vector2f pos, int team, bool captured = false, bool special_fort = false);
 void SpawnLaser(float posx, float posy, float vel, float ang, float dam, float team, Entity* sender, std::vector <float> size = { 2, 1 });
 void SpawnMissle(sf::Vector2f pos, float vel, float ang, float dam, int no_of_proj, int team, Entity* sender, Entity* target, float size, int trail_length, float splash_radius, float terminal_vel = 7.5, float power = 1);
 void SpawnParticle(sf::Vector2f pos, float size, float range, int type, float durRate, sf::Color col);
@@ -218,8 +218,7 @@ std::vector <std::vector <int>> AverageTankAgeArr;
 std::vector <std::vector <int>> TeamTerritoryArr;
 std::vector <std::vector <int>> CapturedFortPopArr;
 std::vector <std::vector <int>> DeadTankPopArr;
-std::vector <int> TotalDeadTankNoArr;
-std::vector <int> TotalLaserNoArr;
+
 
 std::vector <std::vector <float>> SpecialTankRatioArr;
 std::vector <std::vector <float>> SpecialFortRatioArr;
@@ -561,7 +560,9 @@ public:
 
 	std::vector <int> HealTankArray;
 
-	bool special;
+	bool special_fort;
+	bool special_tank;
+	float speed_factor;
 
 
 	// Arc angles
@@ -611,8 +612,9 @@ public:
 
 		level(0), fort_level(0), fort_tanks_healed(0), fort_tanks_spawned(0),
 		fort_tanks_spawned_threshold(0), fort_tanks_healed_threshold(0),
-		HealTankArray{}, special(false),
-		tank_health_arc_angle(0), fort_health_arc_angle(0), fort_assimilation_arc_angle(0)
+		HealTankArray{}, special_fort(false),
+		tank_health_arc_angle(0), fort_health_arc_angle(0), fort_assimilation_arc_angle(0),
+		special_tank(false), speed_factor(1.0)
 	{
 		
 		if (ID == "tank") {
@@ -719,6 +721,9 @@ public:
 			lockTarget();
 			sf::Color col = colorArr[team];
 			kill_count = 0;
+
+
+			if (level == 1) { upgradeTank(1); }
 
 		}
 
@@ -837,12 +842,13 @@ public:
 			enemy = nullptr;
 			target_pos = { pos[0], pos[1] };
 			for (Entity &entity : EntityArr) {
-                if (entity.ia && enemies(team, entity.team)) {
+				
+				if (entity.ia && enemies(team, entity.team)) {
 					int dx = pos[0] - entity.pos[0];
 					int dy = pos[1] - entity.pos[1];
 
 					double dis = std::sqrt(dx * dx + dy * dy);
-
+					if (level == 1 && entity.ID == "fort") { dis *= 0.5; }	// Special tanks prefer attacking forts
 
 					if (dis < small_dis || small_dis == -1) {
 						small_dis = dis;
@@ -855,8 +861,9 @@ public:
 						// abandoned code
 						pass = 1;
 					}
-
 				}
+				
+                
 			}
 
 			if (found) {
@@ -947,7 +954,7 @@ public:
 		if (ID == "fort") {
 			if (eventLogging) { std::cout << "Fort.getTerritoryPower()" << std::endl; }
 			if (Tank_spawn_timer < 0) { return assimilating_fort_territory_power; }
-			if (special) {
+			if (special_fort) {
 				return special_fort_territory_power;
 			}
 			else {
@@ -964,7 +971,21 @@ public:
 		return false;
 	}
 
-	
+	void upgradeTank(int lev) {
+		if (lev == 1) {
+			dam = Tank_DAMAGE * special_tank_damage_factor;
+			max_ammo_supply = Tank_MAX_AMMO * special_tank_ammo_factor;
+			float ratio = hp / max_hp;
+			max_hp = Tank_HP * special_tank_hitpoints_factor;
+			hp = max_hp * ratio;
+			speed_factor = special_tank_speed_factor;
+			range = Tank_RANGE * special_tank_range_factor;
+			level = 1;
+		}
+		else {
+			std::cout << "Error: upgradeTank() called with invalid level" << std::endl;
+		}
+	}
 	
 };
 
@@ -983,6 +1004,7 @@ public:
 	int chunks[2];
 	std::string sender_ID;
 	int sender_uniqueID;
+	int sender_level;
 	std::vector <float> size;
 
 	bool lost_sender;
@@ -998,6 +1020,20 @@ public:
 	bool spawn(sf::Vector2f spawn_pos, float spawn_vel, float ang, float spawn_dam, int spawn_team, Entity* spawn_sender, std::vector <float> sp_size)
 	{
 		if (eventLogging) { std::cout << "Laser.spawn()"; }
+
+		if (sender != nullptr) {
+			bool is_valid(false);
+			for (auto& entity : EntityArr) {
+				if (&entity == sender) {
+					is_valid = true;
+					break;
+				}
+			}
+			if (!is_valid) {
+				sender = nullptr;
+				lost_sender = true;
+			}
+		}
 
 		if (spawn_sender == nullptr) {
 			if (eventLogging) { std::cout << "  Laser.spawn() cancelled due to faulty sender..."; }; return false;
@@ -1029,6 +1065,7 @@ public:
 			if (eventLogging) { std::cout << "  accessing sender pointer..." << std::endl; }; 
 			sender_ID = sender->ID;
 			sender_uniqueID = sender->uniqueID;
+			sender_level = sender->level;
 		}
 		else {ia = false; return false; }
 		
@@ -1177,6 +1214,7 @@ public:
 	int senderID, targetID, senderteam;
 	std::string target_StringID, sender_StringID;
 
+
 	Missle()
 	{
 		ia = false;
@@ -1285,17 +1323,21 @@ public:
 
 
 		// Checking to see if Target is still valid
-		__try {
-			volatile int dummy = target->uniqueID;
-		}__except(EXCEPTION_EXECUTE_HANDLER){
-			target = nullptr;
-			std::cout << "Error caught at line 1261" << std::endl;
+		if (target != nullptr) {
+			__try {
+				volatile int dummy = target->uniqueID;
+			}
+			__except (EXCEPTION_EXECUTE_HANDLER) {
+				target = nullptr;
+				std::cout << "Error caught at Missle.move(), invalid target" << std::endl;
+			}
 		}
+		
 
-		if (target == nullptr || target->uniqueID != targetID || target->ID != target_StringID) {
+		if (target == nullptr || target->uniqueID != targetID || target->ID != target_StringID || !enemies(team, target->team)) {
 			bool found = false;
 			for (int i = 0; i < EntityArr.size(); i++) {
-				if (EntityArr[i].uniqueID == targetID && target_StringID == EntityArr[i].ID) {
+				if (EntityArr[i].uniqueID == targetID && target_StringID == EntityArr[i].ID && enemies(team, EntityArr[i].team)) {
 					target = &EntityArr[i];
 					found = true;
 				}
@@ -1321,13 +1363,16 @@ public:
 			}
 		}
 
-		__try {
-			volatile int dummy = sender->uniqueID;  // Attempt to access a member.
+		if (sender != nullptr) {
+			__try {
+				volatile int dummy = sender->uniqueID;  // Attempt to access a member.
+			}
+			__except (EXCEPTION_EXECUTE_HANDLER) {
+				sender = nullptr;
+				std::cout << "Error caught at Missle.move(), invalid sender" << std::endl;
+			}
 		}
-		__except (EXCEPTION_EXECUTE_HANDLER) {
-			sender = nullptr;
-			std::cout << "Error caught at Line:1298" << std::endl;
-		}
+		
 
 		if (sender == nullptr || sender->uniqueID != senderID) {
 			bool found = false;
@@ -1448,6 +1493,15 @@ public:
 
 	void explode()
 	{
+		/*if (sender != nullptr) {
+			__try {
+				volatile int dummy = sender->uniqueID;
+			}
+			__except (EXCEPTION_EXECUTE_HANDLER) {
+				sender = nullptr;
+				std::cout << "Error caught in Missle.explode(), invalid sender" << std::endl;
+			}
+		}*/
 		if (sender == nullptr) { ia = false; return; }
 		for (int i = 0; i < no_of_proj; i++) {
 			SpawnLaser(pos.x, pos.y, (splash_radius * .75) + ((rand() % 25) * splash_radius / 100), rand() % 360, dam, team, sender, {5, 1});
@@ -1468,6 +1522,9 @@ void Entity::AI()
 {
 	if (ID == "tank")
 	{
+
+		if (level == 1) { upgradeTank(1); }
+
 		// Event Logging for Troubleshooting
 		if (eventLogging) {
 			std::cout << std::endl;
@@ -1566,11 +1623,8 @@ void Entity::AI()
 		if (((kill_count >= kill_count_threshold && kill_count_threshold != -1) ||
 			(age >= old_age && old_age != -1)) && level == 0) { // If Tank is old enough or has enough kills, give it a level up
 			if (level == 0 && SPECIAL_TANKS) { // if tank has not been upgraded yet
-				max_ammo_supply = Tank_MAX_AMMO * special_tank_ammo_factor;  // Increase Max Ammo
-				max_hp = Tank_HP * special_tank_hitpoints_factor;	// Increase Max HP
-				dam = Tank_DAMAGE * special_tank_damage_factor;		// Increase Damage
-				range = Tank_RANGE * special_tank_range_factor;		// Increase Range
-				level = 1;											
+				upgradeTank(1);
+				std::cout << "Tank " << uniqueID << " has leveled up to Special Tank!" << std::endl;
 			}
 
 		}
@@ -1996,7 +2050,7 @@ void Entity::AI()
 			laser_pos.x += x; laser_pos.y += y;
 
 			// Spawn Projectile to shoot
-			if (ammo_supply <= Tank_MISSLE_NO) {
+			if ((ammo_supply <= Tank_MISSLE_NO && false) || level > 0) {
 				SpawnMissle(laser_pos, tank_missle_velocity, ang, dam * tank_missle_damagefactor, tank_missle_projectile_no, 
 							team, this, enemy, Tank_Missle_Size, Tank_Missle_TrailLength, tank_missle_splash_radius, 
 							tank_missle_terminal_velocity, tank_missle_power); // spawn missle
@@ -2104,7 +2158,7 @@ void Entity::AI()
 		if (((fort_tanks_spawned >= fort_tanks_spawned_threshold && fort_tanks_spawned_threshold != -1) ||
 			(fort_tanks_healed >= fort_tanks_healed_threshold && fort_tanks_healed_threshold != -1))
 			&& SPECIAL_FORTS) { // Checking the requirements for Special Forts [If Fort has healed or spawned enough tanks]
-			if (special) {
+			if (special_fort) {
 				if (fort_level == 0) { // If fort JUST leveled up
 					for (int i = 0; i < 15; i++) {
 						SpawnParticle({ pos[0], pos[1] }, 8, 2, 2, .5, col);
@@ -2120,7 +2174,7 @@ void Entity::AI()
 				fort_level = 1;
 			}
 			else {
-				special = true;
+				special_fort = true;
 				fort_tanks_healed = fort_tanks_healed_threshold;
 				fort_tanks_spawned = fort_tanks_spawned_threshold;
 
@@ -2180,7 +2234,7 @@ void Entity::AI()
 				hp = max_hp;
 				max_Tank_spawn_time = Fort_SPAWNTANK_TIME;
 				range = Fort_RANGE;
-				special = false;
+				special_fort = false;
 				level = 0;
 
 
@@ -3429,26 +3483,31 @@ int main()
 
 	loadGameButtons();
 
-
+	bool max_pop_reached = false;
 	// MAIN GAME LOOP
 	while (!quitGame) {
 
 		game_ticks++; frames++; frames2++; current_game_timer++;
 		if (game_ticks > 1'000'000'000) { quitGame = true; }
 
-		if (game_ticks % 4 == 0) { updateStats(); }
-		if (game_ticks % extra_population_interval == 0) {
-			bool max_pop_reached = false;
+		if (game_ticks % 13 == 0) {
+			updateStats();
+		}
+
+		if (game_ticks % 20 == 0 && !max_pop_reached) {
+			int teams_maxpop = 0;
 			for (int i = 0; i < numberOfTeams; i++) {
-				if (getTankPop(i) >= extra_population + 16) {
-					max_pop_reached = true;
-					break;
+				if (getTankPop(i) >= extra_population + Tank_MAX_POP) {
+					teams_maxpop += 1;
 				}
-			}
-			if (max_pop_reached) {
+			}	
+			max_pop_reached = teams_maxpop >= 2; // If 2 teams are at max population, increase max population
+		}
+
+		if (game_ticks % extra_population_interval == 0 && max_pop_reached) {
 				extra_population += extra_population_quanta;
 				std::cout << "Current Game Timer: " << current_game_timer << "| Extra Population: " << extra_population << std::endl;
-			}
+				max_pop_reached = false;
 		}
 		
 		//if (game_ticks % 45 == 0) { std::cout << "Current Game Timer: " << current_game_timer << "| Extra Population: " << extra_population << std::endl; }
@@ -3480,7 +3539,7 @@ int main()
 
 
 		// Update Population Data
-		if (game_ticks % 180 == 0) {
+		if (game_ticks % 300 == 0) {		// Update every 5 seconds (at 60 FPS)
 			std::vector<int> pops;
 			std::vector<float> f_pops;
 
@@ -3506,7 +3565,7 @@ int main()
 			CapturedFortPopArr.push_back(pops);
 			pops.clear();
 
-			int TotalDeadTanks = 0;
+			
 			for (int i = 0; i < numberOfTeams; i++) {
 				int deadtankpop = 0;
 				for (int j = 0; j < DeadTankArr.size(); j++) {
@@ -3515,10 +3574,8 @@ int main()
 					}
 				}
 				pops.push_back(deadtankpop);
-				TotalDeadTanks += deadtankpop;
 			}
 			DeadTankPopArr.push_back(pops);
-			TotalDeadTankNoArr.push_back(TotalDeadTanks);
 			pops.clear();
 
 
@@ -4360,13 +4417,6 @@ void RenderMinimap()
 
 					if (i > 0) {
 						diff = y - (p_r_y + g_size.y);	// vertical gap length
-						/*if (DEBUG_FEATURES) {
-							std::cout << "diff(" + std::to_string(diff) + ") = y(" +
-								std::to_string(y) + ") - [p_r_y(" +
-								std::to_string(p_r_y) + ") + g_size.y(" +
-								std::to_string(g_size.y) + ")]"
-								<< std::endl;
-						}*/
 						y -= diff;
 						tile_height += diff;
 					}
@@ -4427,7 +4477,7 @@ void RenderMinimap()
 			sf::Color col = entity.col;
 			if (entity.Tank_spawn_timer < 0) { col = dimCol(col, 60); }
 			
-			if (entity.special) {
+			if (entity.special_fort) {
 				drawFilledRect(window, { g_pos.x - 3, g_pos.y - 3, 6, 6 }, col);
 				drawRect(window, { g_pos.x - 3, g_pos.y - 3, 5, 5 }, dimCol(col, 25), 1);
 				//drawRect(window, { g_pos.x - 4, g_pos.y - 4, 7, 7 }, { 0,0,0 }, 1);
@@ -4606,7 +4656,7 @@ void SpawnTank(sf::Vector2f pos, int team, int level, bool no_ammo) {
 	if (eventLogging) { std::cout << "  SPAWNTANK() executed" << std::endl; }
 }
 
-void SpawnFort(sf::Vector2f pos, int team, bool captured, bool special) {
+void SpawnFort(sf::Vector2f pos, int team, bool captured, bool special_fort) {
 	if (eventLogging) { std::cout << std::endl; std::cout << "/SPAWNFORT()/" << std::endl; }
 
 	Entity newFort("fort");
@@ -4614,10 +4664,10 @@ void SpawnFort(sf::Vector2f pos, int team, bool captured, bool special) {
 	if (!captured) { newFort.Tank_spawn_timer = 0; }
 	else { newFort.Tank_spawn_timer = -fort_assimilation_ticks; }
 
-	if (special) {
+	if (special_fort) {
 		newFort.fort_tanks_healed = newFort.fort_tanks_healed_threshold; 
 		newFort.fort_tanks_spawned = newFort.fort_tanks_spawned_threshold;
-		newFort.special = true;
+		newFort.special_fort = true;
 	}
 	EntityArr.push_back(newFort);
 
@@ -5097,7 +5147,6 @@ void DemoGame(int type)
 	AverageTankAgeArr.clear();
 	TeamTerritoryArr.clear();
 
-	TotalDeadTankNoArr.clear();
 
 
 
@@ -5110,7 +5159,7 @@ void DemoGame(int type)
 	// Adjust game Map Size
 
 	std::vector <float> size_array = { 2500, 3200, 4000, 5000, 8000 };
-	std::vector <float> fort_number_multiplier_array = { 0.6, 1, 1.25, 2, 2.5 };
+	std::vector <float> fort_number_multiplier_array = { 0.6, 1, 1.25, 1.5, 1.75 };
 	int size_option = rand() % (int)size_array.size();
 
 	GAME_MAP_WIDTH = size_array[size_option];
@@ -5451,7 +5500,7 @@ void DemoGame(int type)
 		std::vector <int> team_arr;
 		int team_no = numberOfTeams;
 		forts_per_team *= (std::sqrt(16 / team_no) * .6);
-		if (GAME_MAP_WIDTH == 5000) { forts_per_team = (rand() % 9) + 8; }
+		if (GAME_MAP_WIDTH == 5000) { forts_per_team = (rand() % 3) + 9; }
 		if (GAME_MAP_WIDTH == 8000) { forts_per_team = (rand() % 3) + 15; }
 		
 		
@@ -5712,14 +5761,6 @@ void saveJSONData()
 		outputFile.close();
 	}
 
-	// Total Dead Tank Population
-	jsonArray = json(TotalDeadTankNoArr);
-	fileName = makePath("TotalDeadTankNoArr.json");
-	outputFile.open(fileName);
-	if (outputFile.is_open()) {
-		outputFile << jsonArray.dump(4);
-		outputFile.close();
-	}
 
 	// Captured Fort Ratio Array
 	jsonArray = json(CapturedFortRatioArr);
