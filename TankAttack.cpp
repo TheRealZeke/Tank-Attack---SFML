@@ -317,7 +317,7 @@ const int extra_population_quanta =		_jsonData01["extra_population_quanta"];
 
 const int Tank_MAX_AMMO =			_jsonData01["Tank_MAX_AMMO"];
 const int Tank_MISSLE_NO =			_jsonData01["Tank_MISSLE_NO"];
-const int Tank_MAX_POP =			_jsonData01["Tank_MAX_POP"];
+const int Tank_MIN_POP =			_jsonData01["Tank_MIN_POP"];
 const float Tank_SPEED_FACTOR =		_jsonData01["Tank_SPEED_FACTOR"];
 const int Tank_LASER_COOLDOWN =		_jsonData01["Tank_LASER_COOLDOWN"];
 
@@ -332,9 +332,9 @@ const float Tank_DAMAGE =			_jsonData01["Tank_DAMAGE"];
 
 const float Fort_HP =				_jsonData01["Fort_HP"];
 const int Fort_RANGE =				_jsonData01["Fort_RANGE"];
-float Fort_DAMAGE =			_jsonData01["Fort_DAMAGE"];
+const float Fort_DAMAGE =			_jsonData01["Fort_DAMAGE"];
 
-float PanicHealthPerc =				_jsonData01["PanicHealthPerc"];
+const float PanicHealthPerc =		_jsonData01["PanicHealthPerc"];
 
 
 // Special Unit Values
@@ -518,7 +518,7 @@ class Entity
 {
 public:
 	std::string ID;								// Entty type {Tank or Fort}
-	float pos[2], vel[2], acc[2];				// Position, Velocity, Acceleration  [Tank, Fort]
+	sf::Vector2f pos, vel, acc;				// Position, Velocity, Acceleration  [Tank, Fort]
 	sf::FloatRect rect;							// SFML rect object [Tank. Fort]
 	float ang;									// Angle of entity [Tank, Fort]
 	float v_ang, a_ang;							// Angular velocity and acceeration [Tank, Fort]
@@ -659,16 +659,16 @@ public:
 
 			gun_barrel[0] = fort_gun_length; gun_barrel[1] = fort_gun_width;
 		
-			ang = rand() % 360;
+			ang = (float)(rand() % 360);
 
-			max_target_time = fort_target_time; target_time = max_target_time;
+			max_target_time = (float)(fort_target_time); target_time = max_target_time;
 			idle = true;
-			max_wander_time = fort_wander_time; wander_time = max_wander_time;
-			max_laser_cooldown = Fort_LASER_COOLDOWN; 
+			max_wander_time = (float)(fort_wander_time); wander_time = max_wander_time;
+			max_laser_cooldown = (float)(Fort_LASER_COOLDOWN); 
 			max_missle_cooldown = max_laser_cooldown * 33 * fort_missle_cooldown_factor;
-			max_Tank_spawn_time = Fort_SPAWNTANK_TIME;
+			max_Tank_spawn_time = (float)(Fort_SPAWNTANK_TIME);
 			max_flicker_time = 120; flicker_vel = 1;
-			flicker_timer = rand() % (int)max_flicker_time;
+			flicker_timer = (float)(rand() % (int)max_flicker_time);
 			fort_tanks_healed_threshold = special_fort_tanks_healed; fort_tanks_spawned_threshold = special_fort_tanks_spawned;
 		
 		}
@@ -705,14 +705,13 @@ public:
 			
 			
 
-			pos[0] = spawn_pos.x;
-			pos[1] = spawn_pos.y;
+			pos = spawn_pos;
 
 
 			
 			
-			rect.width = CompTankImgArr[team].getSize().x;
-			rect.height = CompTankImgArr[team].getSize().y;
+			rect.width = (float)(CompTankImgArr[team].getSize().x);
+			rect.height = (float)(CompTankImgArr[team].getSize().y);
 			rect.left = spawn_pos.x + (rect.width / 2);
 			rect.top = spawn_pos.y + (rect.height / 2);
 
@@ -722,7 +721,7 @@ public:
 			
 
 			if (eventLogging) {
-				std::cout << "  Coordinates: " << pos[0] << ", " << pos[1] << std::endl;
+				std::cout << "  Coordinates: " << pos.x << ", " << pos.y << std::endl;
 			}
 
 			hp = Tank_HP; max_hp = Tank_HP;
@@ -751,14 +750,14 @@ public:
 
 			ia = true;
 			max_hp = Fort_HP; hp = max_hp;
-			pos[0] = spawn_pos.x; pos[1] = spawn_pos.y;
+			pos = spawn_pos;
 			range = Fort_RANGE;
 			dam = Fort_DAMAGE;
 			team = spawn_team;
 			col = colorArr[team]; opp_col = oppCol(col);
 			size = Fort_SIZE;
 
-			rect = {pos[0] - size/2, pos[1] - size/2, size, size};
+			rect = {pos.x - size/2, pos.y - size/2, size, size};
 			col = colorArr[team];
 			ang = rand() % 360;
 
@@ -790,35 +789,25 @@ public:
 	void accel(float dirc)
 	{
 		if (ID == "tank") {
-			acc[0] = cos(std::numbers::pi * ang / 180) * .075 * dirc * Tank_SPEED_FACTOR;
-			acc[1] = sin(std::numbers::pi * ang / 180) * .075 * dirc * Tank_SPEED_FACTOR;
+			acc = { (float)cos(std::numbers::pi * ang / 180.f) * .075f * dirc * Tank_SPEED_FACTOR, 
+					(float)sin(std::numbers::pi * ang / 180.f) * .075f * dirc * Tank_SPEED_FACTOR };
 		}
 	}
 
 	void deccel()
 	{
 		if (ID == "tank") {
-			for (int i = 0; i < 2; i++) {
-				acc[i] = 0;
-
-				// Don't forget GameFPSRatio
-				vel[i] *= (float)pow(.1, GameFPSRatio);
-				if (vel[i] <= .01) {
-					vel[i] = 0;
-				}
-			}
+			acc = { 0,0 };
+			vel *= (float)pow(.99, GameFPSRatio);
 		}
+		
 	}
 
 	void deccelAng()
 	{
 		if (ID == "tank") {
 			a_ang = 0;
-			// Rememer GameFPSRatio
-			v_ang *= (float)pow(.1, GameFPSRatio);
-			if (v_ang <= 1) {
-				v_ang = 0;
-			}
+			v_ang *= (float)pow(.9, GameFPSRatio);
 		}
 	}
 
@@ -828,7 +817,7 @@ public:
 			double radians = (ang - 90) * std::numbers::pi / 180.0;
 			int width = abs(texWidth * cos(radians)) + abs(texHeight * sin(radians));
 			int height = abs(texWidth * sin(radians)) + abs(texHeight * cos(radians));
-			sf::FloatRect rotatedRect(pos[0] - width / 2, pos[1] - height / 2, width, height );
+			sf::FloatRect rotatedRect(pos.x - width / 2, pos.y - height / 2, width, height );
 			return rotatedRect;
 		}
 
@@ -854,12 +843,12 @@ public:
 			bool found = false;
 			//Entity *entityID;
 			enemy = nullptr;
-			target_pos = { pos[0], pos[1] };
+			target_pos = pos;
 			for (Entity &entity : EntityArr) {
 				
 				if (entity.ia && enemies(team, entity.team)) {
-					int dx = pos[0] - entity.pos[0];
-					int dy = pos[1] - entity.pos[1];
+					int dx = pos.x - entity.pos.x;
+					int dy = pos.y - entity.pos.y;
 
 					double dis = std::sqrt(dx * dx + dy * dy);
 					if (level == 1 && entity.ID == "fort") { dis *= 0.5; }	// Special tanks prefer attacking forts
@@ -885,7 +874,7 @@ public:
 				idle = false;
 				wander_time = 0;
 				if (eventLogging) {
-					std::cout << "  Entity Found: " << enemy->ia << "; EnemyPos : " << enemy->pos[0] << "," << enemy->pos[1] << std::endl;
+					std::cout << "  Entity Found: " << enemy->ia << "; EnemyPos : " << enemy->pos.x << "," << enemy->pos.y << std::endl;
 					std::cout << "  Enemy Team: " << enemy->team << std::endl;
 				}
 
@@ -921,8 +910,8 @@ public:
 					for (int i = 0; i < EntityArr.size(); i++) {
 						if (EntityArr[i].ia && enemies(team, EntityArr[i].team)) {
 							if (FORTS_ATTACK_FORTS || EntityArr[i].ID == "tank") {
-								dx = pos[0] - EntityArr[i].pos[0];
-								dy = pos[1] - EntityArr[i].pos[1];
+								dx = pos.x - EntityArr[i].pos.x;
+								dy = pos.y - EntityArr[i].pos.y;
 								dis = std::sqrt(dx * dx + dy * dy);
 
 								if (dis < small_dis) {
@@ -938,7 +927,7 @@ public:
 			
 				if (found) {
 					idle = false; wander_time = 15;
-					target_pos = { enemy->pos[0], enemy->pos[1]};
+					target_pos = enemy->pos;
 				}
 				else {
 					idle = true;
@@ -947,8 +936,8 @@ public:
 					float dis = rand() % (int)(range + 1);
 					float temp_ang = rand() % 360;
 
-					float x = cos(temp_ang * std::numbers::pi / 180) * dis + pos[0];
-					float y = sin(temp_ang * std::numbers::pi / 180) * dis + pos[1];
+					float x = cos(temp_ang * std::numbers::pi / 180) * dis + pos.x;
+					float y = sin(temp_ang * std::numbers::pi / 180) * dis + pos.y;
 					target_pos = {x, y};
 				}
 			}
@@ -959,7 +948,7 @@ public:
 	{
 		if (ID == "tank") {
 			wander_time = max_wander_time;
-			wander_pos = { pos[0] + (rand() % 300) - 150, pos[1] + (rand() % 300) - 150 };
+			wander_pos = { pos.x + (rand() % 300) - 150, pos.y + (rand() % 300) - 150 };
 		}
 
 	}
@@ -1025,11 +1014,11 @@ public:
 
 
 
-	Laser() 
-	{
-		ia = false;
-		max_life = 60;
-	}
+	Laser():
+		pos({ 0,0 }), last_pos({ 0,0 }), vel({ 0,0 }), team(NULL), ia(false), col(), actual_col(),
+		uniqueID(NULL), dam(0), life(60), max_life(60), sender(nullptr), chunks{ 0,0 },
+		sender_ID(""), sender_uniqueID(NULL), sender_level(NULL), size({}), lost_sender(false)
+	{}
 
 	bool spawn(sf::Vector2f spawn_pos, float spawn_vel, float ang, float spawn_dam, int spawn_team, Entity* spawn_sender, std::vector <float> sp_size)
 	{
@@ -1052,7 +1041,7 @@ public:
 		if (spawn_sender == nullptr) {
 			if (eventLogging) { std::cout << "  Laser.spawn() cancelled due to faulty sender..."; }; return false;
 		}
-		if (team >= numberOfTeams || team < 0) {
+		if (spawn_team >= numberOfTeams || spawn_team < 0) {
 			if (eventLogging) { std::cout << "  Laser.spawn() cancelled due to memory leak..."; }; return false;
 		}
 
@@ -1150,15 +1139,15 @@ public:
 									PvP_Tanks_Killed[sender->team] += 1;
 									PvP_Tanks_Lost[entity.team] += 1;
 									if (GameScreenRect.contains(pos)) {
-										SpawnFloatingText("+1 Kill", { entity.pos[0], entity.pos[1] }, colorArr[sender->team], 18, 1, Font_2, .25);
+										SpawnFloatingText("+1 Kill", entity.pos, colorArr[sender->team], 18, 1, Font_2, .25);
 									}
-									if (GameScreenRect.contains({ sender->pos[0],sender->pos[1] })) {
+									if (GameScreenRect.contains(sender->pos)) {
 										if (special_tank_killcount != -1) {
 											if (sender->kill_count == special_tank_killcount) {
-												SpawnFloatingText("Veteren", { sender->pos[0], sender->pos[1] }, oppCol(colorArr[sender->team]), 20, 2.5, Font_2, .25);
+												SpawnFloatingText("Veteren", sender->pos, oppCol(colorArr[sender->team]), 20, 2.5, Font_2, .25);
 											}
 											else if (sender->kill_count % sender->kill_count_threshold == 0 && sender->kill_count > special_tank_killcount) {
-												SpawnFloatingText("KillStreak!", { sender->pos[0], sender->pos[1] }, oppCol(colorArr[sender->team]), 20, 2.5, Font_2, .25);
+												SpawnFloatingText("KillStreak!", sender->pos, oppCol(colorArr[sender->team]), 20, 2.5, Font_2, .25);
 											}
 										}
 									}
@@ -1242,12 +1231,12 @@ public:
 	bool stray = false;
 
 
-	Missle()
-	{
-		ia = false;
-		trail_length = 10;
-		max_life = 180;
-	}
+	Missle():
+		ia(false), pos({ 0,0 }), lpos({ 0,0 }), vel({ 0,0 }), acc({ 0,0 }), id(-1), dam(0), no_of_proj(1), life(0),
+		target(nullptr), sender(nullptr), last_pos({}), team(-1), col(sf::Color::White), size(0), trail_length(10),
+		max_life(180), ang(0), splash_radius(0), terminal_vel(0), power(0), projectile(), senderID(NULL), targetID(NULL), senderteam(NULL),
+		target_StringID(""), sender_StringID(""), stray(false)
+	{}
 
 	~Missle() {}
 
@@ -1378,7 +1367,7 @@ public:
 						float distance, dx, dy;
 						for (int i = 0; i < EntityArr.size(); i++) {
 							if (EntityArr[i].team != team && EntityArr[i].ID == "tank" && EntityArr[i].ia) {
-								dx = pos.x - EntityArr[i].pos[0]; dy = pos.y - EntityArr[i].pos[1];
+								dx = pos.x - EntityArr[i].pos.x; dy = pos.y - EntityArr[i].pos.y;
 								distance = std::sqrt(dx * dx + dy * dy);
 								if (distance < lowest_distance || lowest_distance == -1) {
 									lowest_distance = distance;
@@ -1482,14 +1471,14 @@ public:
 
 		// Move Missle
 		if (target != nullptr) {
-			disx = abs(pos.x - target->pos[0]);
-			disy = abs(pos.y - target->pos[1]);
+			disx = abs(pos.x - target->pos.x);
+			disy = abs(pos.y - target->pos.y);
 
-			if (pos.x < target->pos[0])	{ acc.x = .05 * std::sqrt(disx) * power; }
-			else if (pos.x > target->pos[0]) { acc.x = -.05 * std::sqrt(disx) * power; }
+			if (pos.x < target->pos.x)	{ acc.x = .05 * std::sqrt(disx) * power; }
+			else if (pos.x > target->pos.x) { acc.x = -.05 * std::sqrt(disx) * power; }
 
-			if (pos.y < target->pos[1]) { acc.y = .05 * std::sqrt(disy) * power; }
-			else if (pos.y > target->pos[1]) { acc.y = -.05 * std::sqrt(disy) * power; }
+			if (pos.y < target->pos.y) { acc.y = .05 * std::sqrt(disy) * power; }
+			else if (pos.y > target->pos.y) { acc.y = -.05 * std::sqrt(disy) * power; }
 		}
 
 		
@@ -1562,10 +1551,10 @@ void Entity::AI()
 		if (eventLogging) {
 			std::cout << std::endl;
 			std::cout << "Tank.AI(); GameTick: " << game_ticks << std::endl;
-			std::cout << "  Tank ID: " << uniqueID << "  Tank Pos: " << pos[0] << "," << pos[1] << std::endl;
+			std::cout << "  Tank ID: " << uniqueID << "  Tank Pos: " << pos.x << "," << pos.y << std::endl;
 			std::cout << "  lockTarget Timer: " << lock_target_timer << "; no_ammo: " << no_ammo << std::endl;
 			if (enemy != nullptr) {
-				std::cout << "  Enemy ID: " << enemy->uniqueID << "; Enemy Pos: " << enemy->pos[0] << "," << enemy->pos[1] << std::endl;
+				std::cout << "  Enemy ID: " << enemy->uniqueID << "; Enemy Pos: " << enemy->pos.x << "," << enemy->pos.y << std::endl;
 			}
 		}
 
@@ -1675,7 +1664,7 @@ void Entity::AI()
 		if ((ammo_supply <= 0 || hp <= max_hp * PanicHealthPerc) && NEED_SUPPLIES) {
 			if (!no_ammo) { // If Tank JUST lost all ammo or health reaches critical
 				for (int i = 0; i < 10; i++) {
-					SpawnParticle({ pos[0], pos[1] }, 4, 2, 2, .5, col);
+					SpawnParticle(pos, 4, 2, 2, .5, col);
 				}
 			}
 			no_ammo = true;
@@ -1687,17 +1676,17 @@ void Entity::AI()
 			ia = false;
 
 			// Spawn Dead tank
-			SpawnDeadTank({ pos[0],pos[1] }, ang, team);
+			SpawnDeadTank(pos, ang, team);
 			// Spawn Particles (Exploson effect)
 			for (int i = 0; i < 10; i++) {		
-				SpawnParticle({ pos[0], pos[1] }, 8, .5, 2, 1.5, col);
+				SpawnParticle(pos, 8, .5, 2, 1.5, col);
 				for (int j = 0; j < 2; j++) {
-					SpawnParticle({ pos[0], pos[1] }, 3, 1.2, 1, .8, col);
-					SpawnParticle({ pos[0], pos[1] }, 3, 2, 1, .8, oppCol(col));
+					SpawnParticle(pos, 3, 1.2, 1, .8, col);
+					SpawnParticle(pos, 3, 2, 1, .8, oppCol(col));
 				}
 			}
 			// Play Sound
-			if (GameScreenRect.contains({ pos[0], pos[1] })) {
+			if (GameScreenRect.contains(pos)) {
 				if (rand() % 2 == 0) { tankdies01.play(); }
 				else { tankdies02.play(); }
 			}
@@ -1711,8 +1700,8 @@ void Entity::AI()
 
 
 		// Calculate Tank Hitbox
-		rect.left = pos[0] - rect.width / 2;
-		rect.top = pos[1] - rect.height / 2;
+		rect.left = pos.x - rect.width / 2;
+		rect.top = pos.y - rect.height / 2;
 
 
 		// Set Target coords
@@ -1731,14 +1720,14 @@ void Entity::AI()
 				}
 				else {
 					if (enemy != nullptr) {
-						target_pos.x = enemy->pos[0]; target_pos.y = enemy->pos[1];
+						target_pos.x = enemy->pos.x; target_pos.y = enemy->pos.y;
 						if (eventLogging) {
-							std::cout << "  Tank Target changed to enemy position; Pos :" << enemy->pos[0] << "," << enemy->pos[1] << std::endl;
+							std::cout << "  Tank Target changed to enemy position; Pos :" << enemy->pos.x << "," << enemy->pos.y << std::endl;
 						}
 					}
 					else {
 						if (eventLogging) { std::cout << "  Enemy pointer is NULL" << std::endl; }
-						target_pos = { pos[0], pos[1] };
+						target_pos = pos;
 
 					}
 
@@ -1756,7 +1745,7 @@ void Entity::AI()
 		if (no_ammo && ammo_supply_timer <= 0) {	// If tank is retreating and the Ammo supply timer is refreshed
 			if (eventLogging) { std::cout << "  Tank is searching for nearest valid Fort..." << std::endl; }
 			enemy = nullptr; enemy_uID = -1;	// Nullify Enemy Pointers
-			target_pos = { pos[0], pos[1] };	// Reset target position
+			target_pos = pos;	// Reset target position
 			ammo_supply_timer = max_ammo_supply_time;	// Restart Ammo supply timer
 			int lowest_dis = 100000; bool unit_found = false;	// Variables for searching for new Fort, unit_found is True if at least one Fort is available
 			int final_unit_index; std::string UnitId;				// Variables for searching for new Fort
@@ -1796,8 +1785,8 @@ void Entity::AI()
 						if (eventLogging && !unit_found) { std::cout << "      Tank is not on List" << std::endl; }
 					}
 					else {	// If the Fort has space, then measure distance and compare with other available forts
-						int dx = EntityArr[i].pos[0] - pos[0];
-						int dy = EntityArr[i].pos[1] - pos[1];
+						int dx = EntityArr[i].pos.x - pos.x;
+						int dy = EntityArr[i].pos.y - pos.y;
 						double _dis = std::sqrt(dx * dx + dy * dy);
 						if (_dis < lowest_dis) {
 							lowest_dis = _dis;
@@ -1826,7 +1815,7 @@ void Entity::AI()
 				if (eventLogging) {
 					std::cout << "    Ammo Target found" << std::endl;
 					std::cout << "    Ammo Target ID: " << ammo_Target->uniqueID << std::endl;
-					target_pos = { ammo_Target->pos[0], ammo_Target->pos[1] };
+					target_pos = ammo_Target->pos;
 
 				}
 
@@ -1848,12 +1837,12 @@ void Entity::AI()
 		if (no_ammo) {	// If Tank is retreating
 			if (!idle) {	// If tank is retreating and not idle (so Tank therefore has an Ammotarget)
 				if (ammo_Target != nullptr) {	// Confirm ammotarget is not NULL
-					target_pos.x = ammo_Target->pos[0]; target_pos.y = ammo_Target->pos[1];		// Set Tank target position as the position of Ammo target
+					target_pos = ammo_Target->pos;		// Set Tank target position as the position of Ammo target
 					if (eventLogging) { std::cout << "  Tank Target changed to ammunition target" << std::endl; }
 				}
 				else {	// Tank is retreating and not idle but has no ammo target?
 					if (eventLogging) { std::cout << "  ammo_Target is NULL"; }
-					target_pos = { pos[0], pos[1] };
+					target_pos = pos;
 					idle = true;
 					ammo_Target_uID = -1;
 				}
@@ -1865,8 +1854,8 @@ void Entity::AI()
 		}
 
 
-		float dx = target_pos.x - pos[0];
-		float dy = target_pos.y - pos[1];
+		float dx = target_pos.x - pos.x;
+		float dy = target_pos.y - pos.y;
 
 		// Prevent division by zero
 		if (abs(dy) < .0001) {
@@ -1915,8 +1904,8 @@ void Entity::AI()
 		}
 
 		///////////////// TANK MOVEMENT /////////////////////
-		dx = target_pos.x - pos[0];
-		dy = target_pos.y - pos[1];
+		dx = target_pos.x - pos.x;
+		dy = target_pos.y - pos.y;
 
 		if (dy == 0) {
 			int x = rand() % 2;
@@ -1981,9 +1970,9 @@ void Entity::AI()
 					if (entity.uniqueID == ammo_Target_uID) {
 						target_found = true;
 						ammo_Target = &entity;
-						target_pos = { entity.pos[0] , entity.pos[1] };
-						dx = pos[0] - entity.pos[0];
-						dy = pos[1] - entity.pos[1];
+						target_pos = { entity.pos.x , entity.pos.y };
+						dx = pos.x - entity.pos.x;
+						dy = pos.y - entity.pos.y;
 						dis = std::sqrt(dx * dx + dy * dy);
 					}
 				}
@@ -2019,11 +2008,11 @@ void Entity::AI()
 						
 
 						// Sound and Particle Effects
-						if (GameScreenRect.contains({ pos[0], pos[1] })) {
+						if (GameScreenRect.contains(pos)) {
 							tankreload01.play();
 							for (int i = 0; i < 5; i++) {
-								SpawnParticle({ pos[0], pos[1] }, 3, 2, 2, 1, col);
-								SpawnParticle({ pos[0], pos[1] }, 3, 2, 2, 1, oppCol(col));
+								SpawnParticle(pos, 3, 2, 2, 1, col);
+								SpawnParticle(pos, 3, 2, 2, 1, oppCol(col));
 							}
 						}
 
@@ -2039,7 +2028,7 @@ void Entity::AI()
 
 		/////////////////////  S H O O T  /////////////////////
 		if (abs(targ_ang - ang) <= 7.5 && !idle && laser_cooldown <= 0 && dis <= range && !no_ammo) {
-			sf::Vector2f laser_pos(pos[0], pos[1]);
+			sf::Vector2f laser_pos = pos;
 
 			float x = cos(ang * std::numbers::pi / 180) * rect.height / 2;
 			float y = sin(ang * std::numbers::pi / 180) * rect.height / 2;
@@ -2068,7 +2057,7 @@ void Entity::AI()
 			}
 
 			// --------- Sound Effects Go Here -----------
-			if (GameScreenRect.contains({ pos[0], pos[1] })) {
+			if (GameScreenRect.contains(pos)) {
 				if (rand() % 2 == 0) { tankshoot01.play(); }
 				else { tankshoot02.play(); }
 			}
@@ -2092,10 +2081,10 @@ void Entity::AI()
 		if (eventLogging) {
 			std::cout << std::endl;
 			std::cout << "Fort.AI(); GameTick: " << game_ticks << std::endl;
-			std::cout << "  Fort ID: " << uniqueID << "  Fort Pos: " << pos[0] << "," << pos[1] << std::endl;
+			std::cout << "  Fort ID: " << uniqueID << "  Fort Pos: " << pos.x << "," << pos.y << std::endl;
 			std::cout << "  Fort Angles; ang = " << ang << "; targ_ang = " << targ_ang << std::endl;
 			if (enemy != nullptr) {
-				std::cout << "  Enemy ID: " << enemy->uniqueID << "; Enemy Pos: " << enemy->pos[0] << "," << enemy->pos[1] << std::endl;
+				std::cout << "  Enemy ID: " << enemy->uniqueID << "; Enemy Pos: " << enemy->pos.x << "," << enemy->pos.y << std::endl;
 			}
 			std::cout << "  Healing Tanks Array: [";
 			for (int i = 0; i < HealTankArray.size(); i++) {
@@ -2168,10 +2157,10 @@ void Entity::AI()
 				fort_level = 1;																			// Upgrade Fort Level
 
 				for (int i = 0; i < 15; i++) {
-					SpawnParticle({ pos[0], pos[1] }, 8, 2, 2, .5, col);
+					SpawnParticle(pos, 8, 2, 2, .5, col);
 				}
 
-				sf::Vector2f temp_pos(pos[0], pos[1]);
+				sf::Vector2f temp_pos = pos;
 				if (GameScreenRect.contains(temp_pos)) {
 					SpawnFloatingText("Upgraded", temp_pos, colorArr[team], 30, 3, Font_2, .33);
 				}
@@ -2204,7 +2193,7 @@ void Entity::AI()
 			if (CONVERT_FORTS) {
 				int newteam = last_bullet_team;
 
-				sf::Vector2f temp_pos(pos[0], pos[1]);
+				sf::Vector2f temp_pos = pos;
 				if (GameScreenRect.contains(temp_pos)) { SpawnFloatingText("Captured", temp_pos, colorArr[newteam], 20, 2, Font_2, .33); }
 				
 
@@ -2234,20 +2223,20 @@ void Entity::AI()
 
 				// Flash effect to indicate capture
 				for (int i = 0; i < 40; i++) {
-					SpawnParticle({ pos[0], pos[1] }, 15, 4, 2, .8, colorArr[newteam]);
+					SpawnParticle(pos, 15, 4, 2, .8, colorArr[newteam]);
 				}
 
 				// Gift tanks if enabled
 				if (GIFT_TANKS) {
 					for (int i = 0; i < 2; i++) {
-						float x = (rand() % 10) - 5 + pos[0];
-						float y = (rand() % 10) - 5 + pos[1];
+						float x = (rand() % 10) - 5 + pos.x;
+						float y = (rand() % 10) - 5 + pos.y;
 						SpawnTank({ x, y }, newteam);
 					}
 				}
 
 				// Play sound effect
-				if (GameScreenRect.contains({ pos[0], pos[1] })) {
+				if (GameScreenRect.contains(pos)) {
 					fortcaptured01.play();
 				}
 			}
@@ -2265,11 +2254,11 @@ void Entity::AI()
 			float FACTOR = (.5 - (hp / max_hp)) * 2 * 5;
 
 			if (rand() % 100 <= 10 * FACTOR) {
-				SpawnParticle({ pos[0], pos[1] }, 4, 1.5, 2, .5, oppCol(col));
+				SpawnParticle(pos, 4, 1.5, 2, .5, oppCol(col));
 			}
 			if (rand() % 100 <= 2 * FACTOR) {
 				for (int i = 0; i < 5; i++) {
-					SpawnParticle({ pos[0], pos[1] }, 3, 3, 1, .8, oppCol(col));
+					SpawnParticle(pos, 3, 3, 1, .8, oppCol(col));
 				}
 			}
 		}
@@ -2282,18 +2271,18 @@ void Entity::AI()
 		if (Tank_spawn_timer >= max_Tank_spawn_time) {
 			if (eventLogging) { std::cout << "  Fort Spawns Tank" << std::endl; }
 			int tank_population = getTankPop(team);
-			if (tank_population < Tank_MAX_POP + extra_population && FORTS_SPAWN_TANKS) {
+			if (tank_population < Tank_MIN_POP + extra_population && FORTS_SPAWN_TANKS) {
 				x = (rand() % 10) - 5; y = (rand() % 10) - 5;
-				x += pos[0]; y += pos[1];
+				x += pos.x; y += pos.y;
 
 				Tank_spawn_timer = 0;
 
 				fort_tanks_spawned += 1;
 				for (int i = 0; i < 20; i++) {
-					SpawnParticle({ pos[0], pos[1] }, 7.5, 2.25, 2, 1 / 1.5, col);
+					SpawnParticle(pos, 7.5, 2.25, 2, 1 / 1.5, col);
 				}
 
-				if (GameScreenRect.contains({ pos[0], pos[1] })) {
+				if (GameScreenRect.contains(pos)) {
 					tankcreated01.play();
 				}
 				SpawnTank({ x, y }, team);
@@ -2302,7 +2291,7 @@ void Entity::AI()
 				// Pop Cap is reached
 				Tank_spawn_timer = max_Tank_spawn_time;
 				if (rand() % 100 <= 10 * GameFPSRatio) {
-					SpawnParticle({ pos[0], pos[1] }, 5, .75, 2, 2, col);
+					SpawnParticle(pos, 5, .75, 2, 2, col);
 				}
 			}
 		}
@@ -2335,11 +2324,11 @@ void Entity::AI()
 
 
 		double dis,dx, dy;
-		dx = target_pos.x - pos[0]; dy = target_pos.y - pos[1];
+		dx = target_pos.x - pos.x; dy = target_pos.y - pos.y;
 		dis = std::sqrt(dx * dx + dy * dy);
 		if (eventLogging) { std::cout << "  Fort Target Pos: " << target_pos.x << "," << target_pos.y << std::endl; }
 
-		dx = target_pos.x - pos[0]; dy = target_pos.y - pos[1];
+		dx = target_pos.x - pos.x; dy = target_pos.y - pos.y;
 		if (dy == 0) {
 			int x = rand() % 2;
 			switch (x) {
@@ -2422,8 +2411,8 @@ void Entity::AI()
 
 			for (int i = 0; i < EntityArr.size(); i++) {
 				if (EntityArr[i].team != team && EntityArr[i].ID != "fort") {
-					dx = EntityArr[i].pos[0] - pos[0];
-					dy = EntityArr[i].pos[1] - pos[1];
+					dx = EntityArr[i].pos.x - pos.x;
+					dy = EntityArr[i].pos.y - pos.y;
 					double dis = std::sqrt(dx * dx + dy * dy);
 					if (dis <= range * .9) {
 						found = true;
@@ -2434,7 +2423,7 @@ void Entity::AI()
 
 			if (found) {
 				random_unit = random_unit_arr[rand() % random_unit_arr.size()];
-				SpawnMissle({ pos[0], pos[1] }, fort_missle_velocity, ang, Fort_DAMAGE * fort_missle_damagefactor,
+				SpawnMissle(pos, fort_missle_velocity, ang, Fort_DAMAGE * fort_missle_damagefactor,
 					fort_missle_projectile_no, team, this, random_unit, Fort_Missle_Size,
 					Fort_Missle_TrailLength, fort_missle_splash_radius, fort_missle_terminal_velocity,
 					fort_missle_power);
@@ -2442,7 +2431,7 @@ void Entity::AI()
 				missle_cooldown = max_missle_cooldown;
 			}
 			else if (!idle) {
-				SpawnMissle({ pos[0], pos[1] }, fort_missle_velocity, ang, Fort_DAMAGE * fort_missle_damagefactor,
+				SpawnMissle(pos, fort_missle_velocity, ang, Fort_DAMAGE * fort_missle_damagefactor,
 					fort_missle_projectile_no, team, this, enemy, Fort_Missle_Size,
 					Fort_Missle_TrailLength, fort_missle_splash_radius, fort_missle_terminal_velocity,
 					fort_missle_power);
@@ -2462,8 +2451,8 @@ void Entity::AI()
 			}
 
 			float x; float y;
-			x = gun_barrel[0] * cos(ang * std::numbers::pi / 180) + pos[0];
-			y = gun_barrel[0] * sin(ang * std::numbers::pi / 180) + pos[1];
+			x = gun_barrel[0] * cos(ang * std::numbers::pi / 180) + pos.x;
+			y = gun_barrel[0] * sin(ang * std::numbers::pi / 180) + pos.y;
 
 			SpawnLaser(x, y, 20, ang, dam, team, this, { 2, .75 });
 
@@ -2475,7 +2464,7 @@ void Entity::AI()
 				SpawnParticle({ x, y }, 4, 3, 2, .25, oppCol(col));
 			}
 			//--- Sound Effects ----//
-			if (GameScreenRect.contains({ pos[0], pos[1] })) {
+			if (GameScreenRect.contains(pos)) {
 				fortshoot01.play();
 			}
 		}
@@ -2516,16 +2505,14 @@ void Entity::move()
 		//last_pos += pos;
 
 		// Add GameFPSRatio
-		for (int i = 0; i < 2; i++) {
-			vel[i] += acc[i] * GameFPSRatio;
-			pos[i] += vel[i] * GameFPSRatio;
-			vel[i] *= (float)pow(.9, GameFPSRatio);
-		}
+		vel += acc * GameFPSRatio;
+		pos += vel * GameFPSRatio;
+		vel *= (float)pow(0.9, GameFPSRatio);
 
 
 		// Update Chunks
-		chunk[0] = (pos[0] / 16);
-		chunk[1] = (pos[1] / 16);
+		chunk[0] = (pos.x / 16);
+		chunk[1] = (pos.y / 16);
 
 	}
 
@@ -2544,7 +2531,7 @@ void Entity::draw()
 		opp_col.a = 255;
 		if ((ammo_supply <= 0 || hp <= max_hp * PanicHealthPerc) && NEED_SUPPLIES) {
 			if (rand() % 100 <= 7 * GameFPSRatio) {
-				SpawnParticle({ pos[0] , pos[1] }, 2.5, .5, 2, 2, opp_col);
+				SpawnParticle(pos, 2.5, .5, 2, 2, opp_col);
 			}
 			if (NEED_SUPPLIES)
 				no_ammo = true;
@@ -2553,9 +2540,9 @@ void Entity::draw()
 		float ratio = hp / max_hp;
 		
 		// Spawn particles for damaged tanks II
-		if ((rand() % 100 <= 25 * (1 - ratio)) && ratio < .67) { for (int i = 0; i < rand() % 4; i++) { SpawnParticle({ pos[0],pos[1] }, 2, 2, 1, .8, opp_col); } }
+		if ((rand() % 100 <= 25 * (1 - ratio)) && ratio < .67) { for (int i = 0; i < rand() % 4; i++) { SpawnParticle(pos, 2, 2, 1, .8, opp_col); } }
 
-		float G_pos[2] = { pos[0] - Camera_Pos[0],pos[1] - Camera_Pos[1] };
+		float G_pos[2] = { pos.x - Camera_Pos[0],pos.y - Camera_Pos[1] };
 		col;
 		
 		col.a = (sf::Uint8)(32 * (ammo_supply / max_ammo_supply));
@@ -2588,7 +2575,7 @@ void Entity::draw()
 		if (level != 0) {
 			drawCircle(window, { G_pos[0], G_pos[1] }, tank_circle_radius, col, 3);
 			if (rand() % 100 <= 8 * GameFPSRatio) {
-				SpawnParticle({ pos[0] , pos[1] }, 3.5, .4, 2, 2.25, col);
+				SpawnParticle(pos, 3.5, .4, 2, 2.25, col);
 			}
 		}
 
@@ -2623,13 +2610,13 @@ void Entity::draw()
 
 			if (rand() % 100 <= (14 * GameFPSRatio * ratio) + 1) {
 				for (int i = 0; i < 2; i++) {
-					SpawnParticle({ pos[0], pos[1] }, 3, .5, 2, 1 + (3 * ratio), opp_col);
+					SpawnParticle(pos, 3, .5, 2, 1 + (3 * ratio), opp_col);
 				}
 			}
 		}
 
 		
-		float x0 = round(pos[0] - Camera_Pos[0]); float y0 = round(pos[1] - Camera_Pos[1]);
+		float x0 = round(pos.x - Camera_Pos[0]); float y0 = round(pos.y - Camera_Pos[1]);
 		float x1, y1, x2, y2;
 		float x, y;
 		float ratio, _ratio;
@@ -2686,8 +2673,8 @@ void Entity::draw()
 				gun_barrel[1] = 3;
 			}
 
-			x1 = gun_barrel[0] * cos(ang * std::numbers::pi / 180) + pos[0];
-			y1 = gun_barrel[0] * sin(ang * std::numbers::pi / 180) + pos[1];
+			x1 = gun_barrel[0] * cos(ang * std::numbers::pi / 180) + pos.x;
+			y1 = gun_barrel[0] * sin(ang * std::numbers::pi / 180) + pos.y;
 			x1 -= Camera_Pos[0]; y1 -= Camera_Pos[1];
 
 			opp_col.a = 255;
@@ -2695,12 +2682,13 @@ void Entity::draw()
 		}
 
 		float dis;
-		float dx = target_pos.x - pos[0]; float dy = target_pos.y - pos[1];
+		float dx = target_pos.x - pos.x; float dy = target_pos.y - pos.y;
 		dis = std::sqrt(dx * dx + dy * dy);
 
 
 		if (DEBUG_FEATURES) {
 			// Draw Debug Features
+			x2 = x0; y2 = y0;
 			if (dis <= range && !idle) {
 				x2 = target_pos.x - Camera_Pos[0]; y2 = target_pos.y - Camera_Pos[1];
 			}
@@ -2784,11 +2772,11 @@ public:
 
 	
 
-	Particle() 
-	{
-		ia = true;
-		timer = 0; //max_timer = 60;
-	}
+	Particle():
+		ia(true), timer(0), max_timer(0),
+		pos({ 0,0 }), vel({ 0,0 }), size(1), range(1), col({ 255,255,255,255 }), type(1),
+		myRect(), windforce(0)
+	{}
 
 	void spawn(sf::Vector2f sp_pos, float sp_size, float sp_range, int sp_type, float sp_durRate, sf::Color sp_col) 
 	{
@@ -2931,8 +2919,8 @@ public:
 		fort = nullptr;
 		for (Entity &entity : EntityArr) {
 			if (entity.ID == "fort") {
-				dx = pos.x - entity.pos[0];
-				dy = pos.y - entity.pos[1];
+				dx = pos.x - entity.pos.x;
+				dy = pos.y - entity.pos.y;
 
 				dis = std::sqrt(dx * dx + dy * dy);
 				
@@ -3211,14 +3199,9 @@ public:
 	sf::Sprite sprite;
 	sf::Color col;
 
-	DeadTank()
-	{
-		life = 0;
-		pos = { 0,0 };
-		ang = 0;
-		type = rand() % 2;
-		ia = false;
-	}
+	DeadTank():
+		life(0), pos({ 0,0 }), ang(0), type(rand() % 2), ia(false), team(0), sprite(), col()
+	{}
 	void spawn(sf::Vector2f s_pos, float s_ang, int s_team)
 	{
 		pos = s_pos;
@@ -3387,7 +3370,9 @@ public:
 	int amount;
 	int type;
 
-	Resource(){}
+	Resource():
+		pos({0, 0}), amount(0), type(0)
+	{}
 	void draw(){}
 };
 
@@ -3553,7 +3538,7 @@ int main()
 		if (game_ticks % 20 == 0 && !max_pop_reached) {
 			int teams_maxpop = 0;
 			for (int i = 0; i < numberOfTeams; i++) {
-				if (getTankPop(i) >= extra_population + Tank_MAX_POP) {
+				if (getTankPop(i) >= extra_population + Tank_MIN_POP) {
 					teams_maxpop += 1;
 				}
 			}	
@@ -3977,8 +3962,8 @@ void handleEvents(sf::RenderWindow& myWindow)
 		}
 		else {
 			// Camera Follows Tank
-			Camera_Pos[0] = Tank_Followed->pos[0] - SCREEN_WIDTH / 2;
-			Camera_Pos[1] = Tank_Followed->pos[1] - SCREEN_HEIGHT / 2;
+			Camera_Pos[0] = Tank_Followed->pos.x - SCREEN_WIDTH / 2;
+			Camera_Pos[1] = Tank_Followed->pos.y - SCREEN_HEIGHT / 2;
 
 			
 		}
@@ -4301,21 +4286,21 @@ void RenderEntities()
 	for (auto& entity: EntityArr) {
 		if (entity.ID == "tank" && entity.ia) {
 			if (!paused) { entity.AI(); }
-			if (GameScreenRect.contains({entity.pos[0], entity.pos[1] })) {entity.draw();}
+			if (GameScreenRect.contains({entity.pos.x, entity.pos.y })) {entity.draw();}
 		}
 	}
 	int size = EntityArr.size();
 	for (int i = 0; i < size; i++) {
 		if (EntityArr[i].ID == "fort" && EntityArr[i].ia) {
 			if (!paused) { EntityArr[i].AI(); }
-			if (GameScreenRect.contains({ EntityArr[i].pos[0], EntityArr[i].pos[1]})) { EntityArr[i].draw(); }
+			if (GameScreenRect.contains({ EntityArr[i].pos.x, EntityArr[i].pos.y})) { EntityArr[i].draw(); }
 		}
 	}
 
 	
 	for (int i = 0; i < size; i++) {
 		if (!EntityArr[i].ia) {
-			TankDeathPositions.push_back({ EntityArr[i].pos[0], EntityArr[i].pos[1]});
+			TankDeathPositions.push_back({ EntityArr[i].pos.x, EntityArr[i].pos.y});
 		}
 	}
 	
@@ -4533,7 +4518,7 @@ void RenderMinimap()
 	// Draw Tanks
 	for (Entity& entity : EntityArr) { 
 		if (entity.ia && entity.ID == "tank") {
-			t_pos = { entity.pos[0], entity.pos[1] };
+			t_pos = entity.pos;
 			g_pos.x = (t_pos.x / GAME_MAP_WIDTH) * MINIMAP_WIDTH + MiniMapRect.left;
 			g_pos.y = (t_pos.y / GAME_MAP_HEIGHT) * MINIMAP_HEIGHT + MiniMapRect.top;
 
@@ -4545,7 +4530,7 @@ void RenderMinimap()
 	// Draw Forts
 	for (Entity& entity : EntityArr) {
 		if (entity.ia && entity.ID == "fort") {
-			t_pos = { entity.pos[0], entity.pos[1] };
+			t_pos = entity.pos;
 			g_pos.x = (t_pos.x / GAME_MAP_WIDTH) * MINIMAP_WIDTH + MiniMapRect.left;
 			g_pos.y = (t_pos.y / GAME_MAP_HEIGHT) * MINIMAP_HEIGHT + MiniMapRect.top;
 
@@ -4641,14 +4626,17 @@ void DrawUI(sf::RenderWindow &surface)
 
 	//Render Game Stats
 	if (DEBUG_FEATURES) {
-		std::string text = "Entitities: " + std::to_string(EntityArr.size());
+		std::string text;
+		text = "Entitities: " + std::to_string(EntityArr.size());
 		renderText(surface, { SCREEN_WIDTH - 75, 125 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
 		text = "Particles: " + std::to_string(ParticleArr.size());
 		renderText(surface, { SCREEN_WIDTH - 75, 150 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
 		text = "Lasers: " + std::to_string(LaserArr.size());
 		renderText(surface, { SCREEN_WIDTH - 75, 175 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
-		text = "Dead Tanks:" + std::to_string(DeadTankArr.size());
+		text = "Missles: " + std::to_string(MissleArr.size());
 		renderText(surface, { SCREEN_WIDTH - 75, 200 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
+		text = "Dead Tanks:" + std::to_string(DeadTankArr.size());
+		renderText(surface, { SCREEN_WIDTH - 75, 225 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
 	}
 
 	// Show Team Stats
@@ -5386,8 +5374,8 @@ void DemoGame(int type)
 					// Make Sure Forts are not too close
 					for (int k = 0; k < EntityArr.size(); k++) {
 						if (EntityArr[k].ID == "fort") {
-							dx = pos.x - EntityArr[k].pos[0];
-							dy = pos.y - EntityArr[k].pos[1];
+							dx = pos.x - EntityArr[k].pos.x;
+							dy = pos.y - EntityArr[k].pos.y;
 
 							dis = std::sqrt(dx * dx + dy * dy);
 							if (dis <= Fort_RANGE * 1.25 && EntityArr[k].team != team_arr[i]) { repeat = true; break; }
@@ -5475,8 +5463,8 @@ void DemoGame(int type)
 
 					for (int k = 0; k < EntityArr.size(); k++) {
 						if (EntityArr[k].ID == "fort") {
-							dx = EntityArr[k].pos[0] - fort_pos.x;
-							dy = EntityArr[k].pos[1] - fort_pos.y;
+							dx = EntityArr[k].pos.x - fort_pos.x;
+							dy = EntityArr[k].pos.y - fort_pos.y;
 
 							dis = std::sqrt(dx * dx + dy * dy);
 
@@ -5559,8 +5547,8 @@ void DemoGame(int type)
 
 					for (int k = 0; k < EntityArr.size(); k++) {
 						if (EntityArr[k].ID == "fort") {
-							dx = EntityArr[k].pos[0] - fort_pos.x;
-							dy = EntityArr[k].pos[1] - fort_pos.y;
+							dx = EntityArr[k].pos.x - fort_pos.x;
+							dy = EntityArr[k].pos.y - fort_pos.y;
 
 							dis = std::sqrt(dx * dx + dy * dy);
 
@@ -5653,8 +5641,8 @@ void DemoGame(int type)
 					// Make Sure Forts are not too close
 					for (int k = 0; k < EntityArr.size(); k++) {
 						if (EntityArr[k].ID == "fort") {
-							dx = pos.x - EntityArr[k].pos[0];
-							dy = pos.y - EntityArr[k].pos[1];
+							dx = pos.x - EntityArr[k].pos.x;
+							dy = pos.y - EntityArr[k].pos.y;
 							dis = std::sqrt(dx * dx + dy * dy);
 							if (dis <= Fort_RANGE * 1.2 && EntityArr[k].team != team_arr[j]) { repeat = true; break; }  // Keep Forts of different teams far away from each other
 							if (dis < Fort_RANGE * 2.5 && EntityArr[k].team == team_arr[j]) { repeat = true; break; }		// Keep Forts of same teams very far away from each other
@@ -5712,8 +5700,7 @@ void DemoGame(int type)
 			// Calculate the center position of all forts for this team
 			for (auto& entity : EntityArr) {
 				if (entity.ID == "fort" && entity.team == team) {
-					teamCenter.x += entity.pos[0];
-					teamCenter.y += entity.pos[1];
+					teamCenter += entity.pos;
 					fortCount += 1;
 				}
 			}
@@ -5728,8 +5715,7 @@ void DemoGame(int type)
 
 				for (auto& entity : EntityArr) {
 					if (entity.ID == "fort" && entity.team == team) {
-						sf::Vector2f entity_pos = { entity.pos[0], entity.pos[1] };
-						float distance = displacement(entity_pos, teamCenter);
+						float distance = displacement(entity.pos, teamCenter);
 						if (distance < closestDistance) {
 							closestDistance = distance;
 							closestFort = &entity;
@@ -5854,7 +5840,7 @@ void saveJSONData()
 	// Ensure the "Game Data" directory exists
 	const std::string folderName = "Game Data";
 	if (!Folder_Exists(folderName)) {
-		_mkdir(folderName.c_str());
+		int tmp = _mkdir(folderName.c_str());
 	}
 
 	// Helper lambda to prepend folder path
@@ -6029,9 +6015,9 @@ void saveGameState(const std::string& filename) {
 		entityJson["ang"] = entity.ang;
 
 		// Save position, velocity, and acceleration as arrays
-		entityJson["pos"] = { entity.pos[0], entity.pos[1] };
-		entityJson["vel"] = { entity.vel[0], entity.vel[1] };
-		entityJson["acc"] = { entity.acc[0], entity.acc[1] };
+		entityJson["pos"] = { entity.pos.x, entity.pos.y };
+		entityJson["vel"] = { entity.vel.x, entity.vel.y };
+		entityJson["acc"] = { entity.acc.x, entity.acc.y };
 
 		// Append this entity's JSON data to the main JSON object
 		j["entities"].push_back(entityJson);

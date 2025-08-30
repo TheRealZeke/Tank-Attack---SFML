@@ -3,7 +3,7 @@
 	"SCREEN_HEIGHT": 1080,
 
 	"Default_Particle_Ticks": 60,
-	"Tiles_Size": 60,
+	"Tiles_Size": 50,
 	"DeadTank_Ticks": 7200,
 	"GameText_Ticks": 60,
 	"Tank_BloomRangeFactor": 0.125,
