@@ -9,5 +9,6 @@
     "FORT_MISSLES":false,
     "FORT_HEALING":true,
     "SPECIAL_TANKS":true,
-    "SPECIAL_FORTS": true
+    "SPECIAL_FORTS": true,
+    "SMART_MISSLES":  false
 }

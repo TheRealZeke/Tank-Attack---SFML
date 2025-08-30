@@ -22,14 +22,14 @@
 	"PanicHealthPerc": 0.25,
 
 	"special_tank_age": -1,
-	"special_tank_killcount": 2,
+	"special_tank_killcount": 3,
 
 	"special_tank_damage_factor": 1.25,
 	"special_tank_ammo_factor": 1,
 	"special_tank_hitpoints_factor": 2,
 	"special_tank_healing_factor": 0,
 	"special_tank_speed_factor": 2.5,
-	"special_tank_range_factor": 1.15,
+	"special_tank_range_factor": 1.0,
 
 	"special_fort_tanks_healed": 25,
 	"special_fort_tanks_spawned": -1,
@@ -57,6 +57,7 @@
 	"tank_LOSrange_factor": 3,
 
 	"tank_fort_heal_percent": 0.25,
+	"tank_specialfort_heal_percent": 0.01,
 	"tanks_per_fort": 0,
 
 	"fort_assimilation_ticks": 4500,

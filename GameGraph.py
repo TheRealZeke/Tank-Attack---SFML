@@ -59,6 +59,26 @@ def plot_average(file_path, axis, title):
         axis.plot(array_y, array_x_avg, c='#000000', linestyle='dashed')
     axis.set_ylabel(title)
     axis.set_xlabel("Time (ticks)")
+    
+def plot_actual_average_age(axis, title):
+    with open("AverageTankAge.json") as file1, open("TankPop.json") as file2:
+        age_data = json.load(file1)
+        pop_data = json.load(file2)
+        array_x_avg = []
+        for i in range(len(age_data)):
+            total_age = 0
+            total_pop = 0
+            for j in range(len(age_data[i])):
+                total_age += age_data[i][j] * pop_data[i][j]
+                total_pop += pop_data[i][j]
+            if total_pop == 0:
+                array_x_avg.append(0)
+            else:
+                array_x_avg.append(total_age / total_pop)
+        array_y = list(range(len(age_data)))
+        axis.plot(array_y, array_x_avg, c='#000000', linestyle='dashed')
+    axis.set_ylabel(title)
+    axis.set_xlabel("Time (ticks)")
 
 def plot_scatter(file_path1, file_path2, axis, xlabel, ylabel, dots=False):
     with open(file_path1) as file1, open(file_path2) as file2:
@@ -140,7 +160,7 @@ fig, ax = plt.subplots(1)
 plot_over_time("FortPop.json", ax, "Fort Population")
 plt.show()
 fig, ax = plt.subplots(1)
-plot_average("AverageTankAge.json", ax, "Average Tank Age")
+plot_actual_average_age(ax, "Actual Average Tank Age")
 plot_over_time("AverageTankAge.json", ax, "Average Tank Age")
 plt.show()
 fig, ax = plt.subplots(1)
