@@ -3,7 +3,7 @@
 	"Tank_RANGE": 250,
 	"Tank_DAMAGE": 50,
 
-	"Tank_MAX_AMMO": 25,
+	"Tank_MAX_AMMO": 20,
 	"Tank_MISSLE_NO": 4,
 	"Tank_MIN_POP": 32,
 	"Tank_SPEED_FACTOR": 1.0,

@@ -94,6 +94,7 @@ void drawCircle(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, s
 void drawArc(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::Color col, int thickness, float startAngle, float endAngle, int pointCount = 16);
 void drawRegPolygon(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::Color col, int thickness, int sides, float rotation, bool fill);
 void drawThickLine(sf::RenderWindow& wind, sf::Vector2f pos1, sf::Vector2f pos2, float thickness, sf::Color color);
+void drawLogs();
 
 
 sf::Color dimCol(sf::Color col, float perc);
@@ -130,7 +131,9 @@ void calculateTilePopulation();
 bool enemies(int my_team, int their_team);
 
 std::string roundToDecimalPlaces(double value, int n);
-
+static sf::Color parseHexColor(const std::string& spec, const sf::Color& fallback, int alpha);
+void renderFormattedText(sf::RenderWindow& surface, const sf::Vector2f& pos, const std::string& Text, const sf::Font& font, int size, const sf::Color& fill_col, int outline_thickness, const sf::Color& outline_col, bool centered);
+std::string colorToHex(const sf::Color& color);
 
 
 bool eventLogging = false;
@@ -207,6 +210,7 @@ json _jData_Teams = json::parse(TeamsFile);
 
 int numberOfTeams = _jData_Teams["numberOfTeams"];
 std::vector<sf::Color> colorArr;
+std::vector<std::string> hexcolorArr;
 
 std::vector <int> TeamTileNo;
 std::vector <float> TeamTilePerc;
@@ -277,6 +281,10 @@ int tankFollowed;
 sf::FloatRect GameScreenRect;
 sf::Color StageColour;
 
+
+
+
+std::vector <std::string> DebugLogArr;
 
 
 ////////////////////// GAME VARIABLES /////////////////////////////////
@@ -1134,7 +1142,8 @@ public:
 							// Update Kill count of sender
 							if (sender != nullptr && sender_uniqueID == sender->uniqueID && entity.hp <= 0 && entity.ID == "tank") {
 								sender->kill_count += 1;
-
+								DebugLogArr.push_back(	"{" + hexcolorArr[sender->team] + "}[" + sender->ID + "#" + std::to_string(sender->uniqueID) + "] killed " +
+														"{" + hexcolorArr[entity.team]  + "}[" + entity.ID + "#" + std::to_string(entity.uniqueID) + "]");
 								if (sender->ID == "tank") {
 									PvP_Tanks_Killed[sender->team] += 1;
 									PvP_Tanks_Lost[entity.team] += 1;
@@ -3294,6 +3303,7 @@ public:
 			GameTextArr.clear();
 			EntityArr.clear();
 			DeadTankArr.clear();
+			DebugLogArr.clear();
 			SpawnGameText("ENTITIES DELETED", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 30, 5, 2, true);
 		}
 		else if (action == numberOfTeams + 3) {
@@ -3404,6 +3414,7 @@ int main()
 	std::cout << "Number of Teams: " << numberOfTeams << std::endl;
 	for (auto& arr : _jData_Teams["colors"]) {
 		colorArr.push_back({ arr[0], arr[1], arr[2] });
+		hexcolorArr.push_back(colorToHex({ arr[0], arr[1], arr[2] }));
 	}
 
 	for (int i = 0; i < numberOfTeams; i++) {
@@ -3577,7 +3588,6 @@ int main()
 		if (draw_minimap && game_ticks) { RenderMinimap(); if (eventLogging) { std::cout << std::endl; std::cout << "/Minimap Rendered/" << std::endl; } }
 		updateWind();
 		if (draw_Tiles && game_ticks % 45 == 0) { UpdateTiles(); }
-
 
 
 		// Update Population Data
@@ -4637,6 +4647,9 @@ void DrawUI(sf::RenderWindow &surface)
 		renderText(surface, { SCREEN_WIDTH - 75, 200 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
 		text = "Dead Tanks:" + std::to_string(DeadTankArr.size());
 		renderText(surface, { SCREEN_WIDTH - 75, 225 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
+
+
+		drawLogs();
 	}
 
 	// Show Team Stats
@@ -5202,6 +5215,7 @@ void DemoGame(int type)
 	GameTextArr.clear();
 	DeadTankArr.clear();
 	ButtonArr.clear();
+	DebugLogArr.clear();
 
 
 	// Clear Team Statistics
@@ -6206,4 +6220,157 @@ std::string roundToDecimalPlaces(double value, int n) {
 		ss << std::fixed << std::setprecision(n) << rounded_value;
 		return ss.str();
 	}
+}
+
+
+
+void drawLogs() {
+    constexpr size_t MAX_LOG_SIZE = 33; // Set your desired maximum size
+    // Remove oldest entries if vector is too big
+    if (DebugLogArr.size() > MAX_LOG_SIZE) {
+        DebugLogArr.erase(DebugLogArr.begin(), DebugLogArr.begin() + (DebugLogArr.size() - MAX_LOG_SIZE));
+    }
+    // (Optional) Draw or process logs here
+	for (int i = 0; i < DebugLogArr.size(); i++) {
+		renderFormattedText(window, { 1750.f, i * 15.f + 275.f }, DebugLogArr[i], Font_2, 12, { 255,255,255,128 }, 0, { 0,0,0,0 }, false);
+	}
+}
+
+
+
+static sf::Color parseHexColor(const std::string& spec, const sf::Color& fallback, int alpha)
+{
+	std::string s = spec;
+	if (!s.empty() && s[0] == '#') s.erase(0, 1);
+	if (s.size() != 6 && s.size() != 8) return fallback;
+
+	auto hexToUint8 = [](const std::string& hex) -> sf::Uint8 {
+		unsigned int v = 0;
+		std::stringstream ss;
+		ss << std::hex << hex;
+		ss >> v;
+		return static_cast<sf::Uint8>(v & 0xFFu);
+		};
+
+	try {
+		sf::Uint8 r = hexToUint8(s.substr(0, 2));
+		sf::Uint8 g = hexToUint8(s.substr(2, 2));
+		sf::Uint8 b = hexToUint8(s.substr(4, 2));
+		sf::Uint8 a = alpha;
+		if (s.size() == 8) a = hexToUint8(s.substr(6, 2));
+		return sf::Color(r, g, b, a);
+	}
+	catch (...) {
+		return fallback;
+	}
+}
+
+void renderFormattedText(sf::RenderWindow& surface,
+	const sf::Vector2f& pos,
+	const std::string& Text,
+	const sf::Font& font,
+	int size,
+	const sf::Color& fill_col,
+	int outline_thickness,
+	const sf::Color& outline_col,
+	bool centered)
+{
+	// 1) Parse Text -> vector of (segment string, segment color)
+	std::vector<std::pair<std::string, sf::Color>> segments;
+	std::string buffer;
+	const std::string& s = Text;
+	size_t i = 0;
+
+	while (i < s.size()) {
+		if (s[i] == '{') {
+			size_t braceClose = s.find('}', i + 1);
+			if (braceClose != std::string::npos && braceClose + 1 < s.size() && s[braceClose + 1] == '[') {
+				size_t bracketClose = s.find(']', braceClose + 2);
+				if (bracketClose != std::string::npos) {
+					// Found a potential color tag {spec}[content]
+					std::string spec = s.substr(i + 1, braceClose - (i + 1));   // e.g. "#ff0000"
+					std::string content = s.substr(braceClose + 2, bracketClose - (braceClose + 2));
+					// flush existing buffer as normal text (default color)
+					if (!buffer.empty()) {
+						segments.emplace_back(buffer, fill_col);
+						buffer.clear();
+					}
+					// parse color; fallback = fill_col
+					sf::Color col = parseHexColor(spec, fill_col, fill_col.a);
+					segments.emplace_back(content, col);
+					i = bracketClose + 1;
+					continue;
+				}
+			}
+		}
+		// normal character
+		buffer.push_back(s[i]);
+		++i;
+	}
+	if (!buffer.empty()) segments.emplace_back(buffer, fill_col);
+
+	// 2) Build sf::Text for measurement and drawing
+	std::vector<sf::Text> texts;
+	texts.reserve(segments.size());
+	float totalWidth = 0.f;
+	float maxHeight = 0.f;
+
+	for (auto& seg : segments) {
+		sf::Text t;
+		t.setFont(font);
+		t.setCharacterSize(size);
+		t.setString(seg.first);
+		t.setFillColor(seg.second);
+		t.setOutlineColor(outline_col);
+		t.setOutlineThickness(outline_thickness);
+
+		// local bounds: sometimes left is negative, so use left + width for advance
+		sf::FloatRect b = t.getLocalBounds();
+		float segWidth = b.left + b.width;
+		float segHeight = b.top + b.height;
+		if (segWidth < 0.f) segWidth = 0.f;
+		if (segHeight < 0.f) segHeight = 0.f;
+
+		texts.push_back(t);
+		totalWidth += segWidth;
+		if (segHeight > maxHeight) maxHeight = segHeight;
+	}
+
+	// 3) Determine starting position (account for centering)
+	float startX = pos.x;
+	float startY = pos.y;
+
+	if (centered) {
+		startX = pos.x - (totalWidth * 0.5f);
+		startY = pos.y - (maxHeight * 0.5f);
+	}
+
+	// 4) Draw segments sequentially, advancing by each segment's measured width
+	float x = startX;
+	for (size_t idx = 0; idx < texts.size(); ++idx) {
+		sf::Text& t = texts[idx];
+		// Re-read bounds to be robust
+		sf::FloatRect b = t.getLocalBounds();
+		float segWidth = b.left + b.width;
+		if (segWidth < 0.f) segWidth = 0.f;
+
+		// position: apply top-left origin (0,0) then place at (x, startY)
+		t.setPosition(std::round(x - b.left), std::round(startY - b.top));
+		// rounding helps avoid blurry text for subpixel positions
+
+		surface.draw(t);
+		x += segWidth;
+	}
+}
+
+
+std::string colorToHex(const sf::Color& color)
+{
+	std::stringstream ss;
+	ss << "#"
+		<< std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(color.r)
+		<< std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(color.g)
+		<< std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(color.b);
+
+	return ss.str();
 }
