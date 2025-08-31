@@ -284,7 +284,7 @@ sf::Color StageColour;
 
 
 
-std::vector <std::string> DebugLogArr;
+std::vector <std::string> GameLogArr;
 
 
 ////////////////////// GAME VARIABLES /////////////////////////////////
@@ -700,6 +700,7 @@ public:
 				}
 			}
 			if (eventLogging) { std::cout << "  Entity spawned with Unique ID: " << uniqueID << std::endl; }
+			GameLogArr.push_back("{" + hexcolorArr[spawn_team] + "}[" + ID + "#" + std::to_string(uniqueID) + "] spawned");
 		}
 		
 		if (ID == "tank") {
@@ -1142,7 +1143,7 @@ public:
 							// Update Kill count of sender
 							if (sender != nullptr && sender_uniqueID == sender->uniqueID && entity.hp <= 0 && entity.ID == "tank") {
 								sender->kill_count += 1;
-								DebugLogArr.push_back(	"{" + hexcolorArr[sender->team] + "}[" + sender->ID + "#" + std::to_string(sender->uniqueID) + "] killed " +
+								GameLogArr.push_back(	"{" + hexcolorArr[sender->team] + "}[" + sender->ID + "#" + std::to_string(sender->uniqueID) + "] killed " +
 														"{" + hexcolorArr[entity.team]  + "}[" + entity.ID + "#" + std::to_string(entity.uniqueID) + "]");
 								if (sender->ID == "tank") {
 									PvP_Tanks_Killed[sender->team] += 1;
@@ -1180,15 +1181,11 @@ public:
 		if (eventLogging) { std::cout << "Laser.draw()"; }
 		sf::Vector2f G_pos = { pos.x - Camera_Pos[0],pos.y - Camera_Pos[1] };
 
-		//drawCircle(window, {G_pos.x + 1, G_pos.y + 1}, 2, dimCol(col, 25), 1);
 		float ratio = life * 2 * 255 / max_life;
 		if (ratio > 255) { ratio = 255; }
 		if (ratio < 0) { ratio = 0; }
 
-		
 		actual_col.a = (sf::Uint8)ratio;
-
-		//drawCircle(window, G_pos, 2, n_col, 1);
 		drawThickLine(window, G_pos, G_pos - size[1]*(vel), size[0], actual_col);
 
 		if (eventLogging) { std::cout << "  Laser Drawn" << std::endl; }
@@ -2204,7 +2201,7 @@ void Entity::AI()
 
 				sf::Vector2f temp_pos = pos;
 				if (GameScreenRect.contains(temp_pos)) { SpawnFloatingText("Captured", temp_pos, colorArr[newteam], 20, 2, Font_2, .33); }
-				
+				GameLogArr.push_back("{" + hexcolorArr[team] + "}[fort#" + std::to_string(uniqueID) + "] converted to {" + hexcolorArr[newteam] + "}[fort#" + std::to_string(uniqueID) + "]");
 
 				// Update the team and color
 				team = newteam;
@@ -2886,6 +2883,7 @@ public:
 	bool border_tile, soft_border_tile;
 
 	float flicker_timer, flicker_timer_vel;
+	float flicker_timer_acc;
 
 	std::vector <Tile*> neighbors;
 
@@ -2893,14 +2891,14 @@ public:
 
 	bool fort_is_assimilating, fort_is_special;
 	float distance_from_fort;
-
+	
 
 	Tile(sf::Vector2f sp_pos, int gx, int gy) :
 		col({ 0, 0, 0, 0 }), flash_state(false), flash_timer(0), max_flash_time(60),
 		flash_vel(1), flash_intensity(255), FortID(-1), pos(sp_pos), team(-1),
 		fort(nullptr), radius(0), grid_x(gx), grid_y(gy), border_tile(false), soft_border_tile(false), neighbors{},
 		flicker_timer(0), flicker_timer_vel(1), tank_deaths(0), fort_is_assimilating(false), fort_is_special(false),
-		distance_from_fort(0)
+		distance_from_fort(0), flicker_timer_acc((float)(1 + std::sqrt(rand() % 10)))
 	{
 		
 		flicker_timer = (float)((rand() % 99 )+ 1) ;
@@ -2994,9 +2992,7 @@ public:
 		if (team == -1) {
 			return;
 		}
-		/*if (pos.x < 0 || pos.x > GAME_MAP_WIDTH || pos.y < 0 || pos.y > GAME_MAP_HEIGHT) {
-			return;
-		}*/
+		
 
 		float gx = pos.x - Camera_Pos[0]; float gy = pos.y - Camera_Pos[1];
 		opp_col = oppCol(col);
@@ -3021,30 +3017,10 @@ public:
 				circle.setOutlineColor(temp_col);
 			}	
 		}
-		circle.setFillColor({ 0,0,0,0 });
+		//circle.setFillColor({ 0,0,0,0 });
 
-		flicker_timer += flicker_timer_vel * 2.5 * GameFPSRatio;
-		if (flicker_timer <= 0 || flicker_timer >= 100) {
-			flicker_timer_vel = -flicker_timer_vel;
-		} // Oscillate border flicker timer
-		if (flicker_timer < 0) { flicker_timer = 0; }
-		if (flicker_timer > 100) { flicker_timer = 100; }
-		float temp = col.a;
-		col.a = (col.a / 6) * flicker_timer / 100;
-		if (soft_border_tile && !border_tile) { col.a = col.a * 1.2; }
-		if (fort_is_assimilating) {
-			col.a = col.a / 2;
-		}
-		circle.setFillColor(col);
-		col.a = temp;
-
-
-		if (border_tile) {
-			temp = col.a;
-			col.a = col.a / 3;
-			circle.setFillColor(col);
-			col.a = temp;
-		}
+		//idle_draw();
+		
 
 		if (flash_timer < 0) { flash_state = false; }
 		if (flash_state) {
@@ -3088,6 +3064,31 @@ public:
 
 			col.a = tmp;
 			opp_col.a = tmp;
+		}
+	}
+	void idle_draw() {
+		flicker_timer += flicker_timer_vel * flicker_timer_acc * GameFPSRatio * .67;
+		if (flicker_timer <= 0 || flicker_timer >= 100) {
+			flicker_timer_vel = -flicker_timer_vel;
+		}
+		if (flicker_timer < 0) { flicker_timer = 0; }
+		if (flicker_timer > 100) { flicker_timer = 100; }
+
+		float temp = col.a;
+		col.a = (col.a / 6) * flicker_timer / 100;
+		if (soft_border_tile && !border_tile) { col.a = col.a * 1.2; }
+		if (fort_is_assimilating) {
+			col.a = col.a / 2;
+		}
+		circle.setFillColor(col);
+		col.a = temp;
+
+
+		if (border_tile) {
+			temp = col.a;
+			col.a = col.a / 3;
+			circle.setFillColor(col);
+			col.a = temp;
 		}
 	}
 	void flash(float vel, sf::Color t_col, float t_intensity, int type = 0)
@@ -3303,7 +3304,7 @@ public:
 			GameTextArr.clear();
 			EntityArr.clear();
 			DeadTankArr.clear();
-			DebugLogArr.clear();
+			GameLogArr.clear();
 			SpawnGameText("ENTITIES DELETED", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 30, 5, 2, true);
 		}
 		else if (action == numberOfTeams + 3) {
@@ -3365,7 +3366,7 @@ public:
 		if (a >= 192) { a = 192; }
 		col.a = a;
 		
-		renderText(surface, { pos.x - Camera_Pos[0], pos.y - Camera_Pos[1] }, text, font, font_size, col, NULL, { 0,0,0,col.a });
+		renderText(surface, { pos.x - Camera_Pos[0], pos.y - Camera_Pos[1] }, text, font, font_size, col, 1, { 0,0,0,col.a });
 		pos.y -= GameFPSRatio * vel; // Floating up effect
 	}
 	~FloatingText() {
@@ -5128,7 +5129,7 @@ void InitTiles()
 	int cy = 0;						// Current row index
 	float gx = 0, gy = 0;			// Current tile map position
 
-	double x_fix = 1.15;			// x_fix is used to adjust the horizontal spacing of the tiles for hexagonal tiling
+	double x_fix = 2 / std::sqrt(3);			// x_fix is used to adjust the horizontal spacing of the tiles for hexagonal tiling
 
 	// Calculate number of rows and columns
 	int num_rows = static_cast<int>((YY + size * 2) / size);
@@ -5165,6 +5166,7 @@ void DrawTiles()
 {
 	for (auto &row_of_tiles : TileArr) {
 		for (Tile& tile : row_of_tiles) {
+			tile.idle_draw();
 			if (!GameScreenRect.contains(tile.pos)) { continue; }	// Skip tiles outside the game screen
 			tile.draw();
 		}
@@ -5215,7 +5217,7 @@ void DemoGame(int type)
 	GameTextArr.clear();
 	DeadTankArr.clear();
 	ButtonArr.clear();
-	DebugLogArr.clear();
+	GameLogArr.clear();
 
 
 	// Clear Team Statistics
@@ -6227,12 +6229,12 @@ std::string roundToDecimalPlaces(double value, int n) {
 void drawLogs() {
     constexpr size_t MAX_LOG_SIZE = 33; // Set your desired maximum size
     // Remove oldest entries if vector is too big
-    if (DebugLogArr.size() > MAX_LOG_SIZE) {
-        DebugLogArr.erase(DebugLogArr.begin(), DebugLogArr.begin() + (DebugLogArr.size() - MAX_LOG_SIZE));
+    if (GameLogArr.size() > MAX_LOG_SIZE) {
+        GameLogArr.erase(GameLogArr.begin(), GameLogArr.begin() + (GameLogArr.size() - MAX_LOG_SIZE));
     }
     // (Optional) Draw or process logs here
-	for (int i = 0; i < DebugLogArr.size(); i++) {
-		renderFormattedText(window, { 1750.f, i * 15.f + 275.f }, DebugLogArr[i], Font_2, 12, { 255,255,255,128 }, 0, { 0,0,0,0 }, false);
+	for (int i = 0; i < GameLogArr.size(); i++) {
+		renderFormattedText(window, { 1750.f, i * 15.f + 275.f }, GameLogArr[i], Font_2, 12, { 255,255,255,128 }, 0, { 0,0,0,0 }, false);
 	}
 }
 
