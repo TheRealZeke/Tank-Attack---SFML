@@ -8,6 +8,7 @@
 	"Tank_MIN_POP": 32,
 	"Tank_SPEED_FACTOR": 1.0,
 	"Tank_LASER_COOLDOWN": 50,
+	"Tank_LASER_SPEED":  12.5,
 	
 	"Fort_HP": 1600.0,
 	"Fort_RANGE": 300,
@@ -16,6 +17,7 @@
 	"Fort_SIZE": 25,
 	"Fort_SPAWNTANK_TIME": 1500,
 	"Fort_LASER_COOLDOWN": 12,
+	"Fort_LASER_SPEED":  20,
 
 
 

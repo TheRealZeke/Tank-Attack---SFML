@@ -17,6 +17,7 @@
 #include <string>
 #include <cctype>
 #include <climits>
+#include <algorithm>
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -134,6 +135,8 @@ std::string roundToDecimalPlaces(double value, int n);
 static sf::Color parseHexColor(const std::string& spec, const sf::Color& fallback, int alpha);
 void renderFormattedText(sf::RenderWindow& surface, const sf::Vector2f& pos, const std::string& Text, const sf::Font& font, int size, const sf::Color& fill_col, int outline_thickness, const sf::Color& outline_col, bool centered);
 std::string colorToHex(const sf::Color& color);
+sf::Vector2f calculateInterceptPoint(const sf::Vector2f& shooterPos, const sf::Vector2f& targetPos, const sf::Vector2f& targetVel, float projectileSpeed);
+double deltaAngle(double a, double b);
 
 
 bool eventLogging = false;
@@ -307,7 +310,8 @@ bool FORT_HEALING =					_jData_GameRules["FORT_HEALING"];
 bool SPECIAL_TANKS =				_jData_GameRules["SPECIAL_TANKS"];
 bool SPECIAL_FORTS =				_jData_GameRules["SPECIAL_FORTS"];
 bool SMART_MISSLES =				_jData_GameRules["SMART_MISSLES"];
-
+bool TANK_AIMBOT =					_jData_GameRules["TANKS_HAVE_AIMBOT"];
+bool FORT_AIMBOT =					_jData_GameRules["FORTS_HAVE_AIMBOT"];
 
 
 
@@ -328,9 +332,11 @@ const int Tank_MISSLE_NO =			_jsonData01["Tank_MISSLE_NO"];
 const int Tank_MIN_POP =			_jsonData01["Tank_MIN_POP"];
 const float Tank_SPEED_FACTOR =		_jsonData01["Tank_SPEED_FACTOR"];
 const int Tank_LASER_COOLDOWN =		_jsonData01["Tank_LASER_COOLDOWN"];
+const float Tank_LASER_SPEED =		_jsonData01["Tank_LASER_SPEED"];
 
 const int Fort_SPAWNTANK_TIME =		_jsonData01["Fort_SPAWNTANK_TIME"];
 const int Fort_LASER_COOLDOWN =		_jsonData01["Fort_LASER_COOLDOWN"];
+const float Fort_LASER_SPEED =		_jsonData01["Fort_LASER_SPEED"];
 const int Fort_SIZE =				_jsonData01["Fort_SIZE"];
 
 // Standard Unit Values
@@ -474,7 +480,7 @@ bool draw_minimap = true;
 bool draw_UI = true;
 bool draw_Tiles = true;
 bool draw_softborders = true;
-
+bool draw_stats = true;
 
 
 
@@ -501,6 +507,7 @@ sf::FloatRect MiniMapRect;
 float SCROLL_SENSITIVITY = 15;
 bool paused = false;
 float game_volume = 100;
+bool autoplay;
 
 
 int current_game_timer = 0;
@@ -936,7 +943,13 @@ public:
 			
 				if (found) {
 					idle = false; wander_time = 15;
-					target_pos = enemy->pos;
+					//target_pos = enemy->pos;
+					if (FORT_AIMBOT) {
+						target_pos = calculateInterceptPoint(pos, enemy->pos, enemy->vel, Fort_LASER_SPEED);
+					}
+					else {
+						target_pos = enemy->pos;
+					}
 				}
 				else {
 					idle = true;
@@ -1710,41 +1723,48 @@ void Entity::AI()
 		rect.top = pos.y - rect.height / 2;
 
 
-		// Set Target coords
-		if (!no_ammo) {
+        // Set the target coordinates for the tank's movement and aiming logic
+        if (!no_ammo) {
+			// If the tank is in wander mode, move towards the wander position
 			if (wander_time > 0) {
 				wander_time -= GameFPSRatio;
-				target_pos = wander_pos;	// Set target position as wander position
+				target_pos = wander_pos; // Set target position as wander position
 				if (eventLogging) {
 					std::cout << "  Tank Target changed to wander position" << std::endl;
 				}
-
 			}
 			else {
+				// If the tank is idle, reset wander time to start wandering again
 				if (idle) {
 					wander_time = max_wander_time;
 				}
 				else {
+					// If the tank has an enemy, set target position to enemy's position
 					if (enemy != nullptr) {
-						target_pos.x = enemy->pos.x; target_pos.y = enemy->pos.y;
+						// Use aimbot logic if enabled, otherwise just aim at enemy's current position
+						if (TANK_AIMBOT) {
+							// Predict where to shoot based on enemy movement and projectile speed
+							target_pos = calculateInterceptPoint(pos, enemy->pos, enemy->vel, Tank_LASER_SPEED);
+						}
+						else {
+							target_pos = enemy->pos;
+						}
 						if (eventLogging) {
 							std::cout << "  Tank Target changed to enemy position; Pos :" << enemy->pos.x << "," << enemy->pos.y << std::endl;
 						}
 					}
 					else {
+						// If no enemy is found, set target position to current position (no movement)
 						if (eventLogging) { std::cout << "  Enemy pointer is NULL" << std::endl; }
 						target_pos = pos;
-
 					}
-
-
-
 				}
 			}
-		}
-		else {
+        }
+        else {
+			// If tank is out of ammo, decrement the ammo supply timer
 			ammo_supply_timer -= GameFPSRatio;
-		}
+        }
 
 
 		// Look for Ammo Supply (Nearest Friendly Fort)
@@ -1860,123 +1880,90 @@ void Entity::AI()
 		}
 
 
-		float dx = target_pos.x - pos.x;
-		float dy = target_pos.y - pos.y;
+        float dx = target_pos.x - pos.x;
+        float dy = target_pos.y - pos.y;
 
-		// Prevent division by zero
-		if (abs(dy) < .0001) {
+        // Prevent division by zero
+        if (abs(dy) < .0001) {
 			dy = (dy >= 0) ? .0001 : -.0001;
-		}
+        }
 
-		double t_ang = 360 - (atan(dx / dy) * 180 / std::numbers::pi);
+        double t_ang = 360 - (atan(dx / dy) * 180 / std::numbers::pi);
 
-		if (dy <= 0) {
+        if (dy <= 0) {
 			targ_ang = t_ang - 90;
-		}
-		else {
+        }
+        else {
 			targ_ang = t_ang + 90;
-		}
+        }
 
-		// Normalize angles to the range [0, 360)
-		while (ang < 0) { ang += 360; }
-		while (ang >= 360) { ang -= 360; }
+        // Normalize angles to the range [0, 360)
+        while (ang < 0) { ang += 360; }
+        while (ang >= 360) { ang -= 360; }
 
-		while (targ_ang < 0) { targ_ang += 360; }
-		while (targ_ang >= 360) { targ_ang -= 360; }
+        while (targ_ang < 0) { targ_ang += 360; }
+        while (targ_ang >= 360) { targ_ang -= 360; }
 
-
-
-		// Rotate tank
-		if (abs(targ_ang - ang) > 1.5) {
-			if (targ_ang > ang) {
-				if (abs(targ_ang - ang) < 180) {
-					tilt(1);
-				}
-				else {
-					tilt(-1);
-				}
-			}
-			else {
-				if (abs(targ_ang - ang) < 180) {
-					tilt(-1);
-				}
-				else {
-					tilt(1);
-				}
-			}
-		}
-		else {
+        // Rotate tank using deltaAngle
+        double dAng = deltaAngle(ang, targ_ang);
+        if (std::abs(dAng) > 1.5) {
+			tilt((dAng > 0) ? 1 : -1);
+        } else {
 			deccelAng();
-		}
+        }
 
-		///////////////// TANK MOVEMENT /////////////////////
-		dx = target_pos.x - pos.x;
-		dy = target_pos.y - pos.y;
+        ///////////////// TANK MOVEMENT /////////////////////
+        dx = target_pos.x - pos.x;
+        dy = target_pos.y - pos.y;
 
-		if (dy == 0) {
-			int x = rand() % 2;
-			switch (x) {
-			case 0:
-				dy = -.1;
-				break;
-			case 1:
-				dy = .1;
-				break;
-			}
-		}
+        if (dy == 0) {
+			dy = (rand() % 2 == 0) ? -.1f : .1f;
+        }
 
-		double dis = std::sqrt(dx * dx + dy * dy);
-		float tankspeed;
-		// Tanks with less ammo move faster/slower
-		if (SHINYS_MOVE_FAST) { tankspeed = 1 + (ammo_supply / max_ammo_supply); }
-		else { tankspeed = 2 - (ammo_supply / max_ammo_supply); }
+        double dis = std::sqrt(dx * dx + dy * dy);
+        float tankspeed;
+        // Tanks with less ammo move faster/slower
+        if (SHINYS_MOVE_FAST) { tankspeed = 1 + (ammo_supply / max_ammo_supply); }
+        else { tankspeed = 2 - (ammo_supply / max_ammo_supply); }
 
+        if (SPECIAL_TANKS && level != 0) { tankspeed *= special_tank_speed_factor; } // Special tanks move faster
 
-
-		if (SPECIAL_TANKS && level != 0) { tankspeed *= special_tank_speed_factor; } // Special tanks move faster
-
-		if (dis > range && !no_ammo) {
-			if (abs(targ_ang - ang) > 180) {
-				if (dx > 0) { accel(tankspeed); }
-				else { accel(-tankspeed); }
-			}
-			else {
+        if (dis > range && !no_ammo) {
+			if (std::abs(dAng) > 180) {
+				accel((dx > 0) ? tankspeed : -tankspeed);
+			} else {
 				accel(tankspeed);
 			}
-		}
-		else {
+        }
+        else {
 			if (!no_ammo) { deccel(); }
-		}
+        }
 
-		// Don't deccelerate while resupplying ammo
+        // Don't deccelerate while resupplying ammo
 
-		if (no_ammo) {
+        if (no_ammo) {
 			// HP affects Tank Speed
 			if (DAMAGED_MOVE_FAST) { tankspeed = 2 - (hp / max_hp); }
 			else { tankspeed = 1 + (hp / max_hp); }
 
-			if (abs(targ_ang - ang) > 180) {
-				if (dx > 0)
-					accel(tankspeed);
-				else
-					accel(-tankspeed);
+			if (std::abs(dAng) > 180) {
+				accel((dx > 0) ? tankspeed : -tankspeed);
 			}
 			else {
 				accel(tankspeed);
 			}
-		}
-		move();
+        }
+        move();
 
 		// Reload ammo/heal tank
 		if (no_ammo) {
-
 			if (ammo_Target != nullptr) {
 				bool target_found = false;
 				for (Entity &entity : EntityArr) {
 					if (entity.uniqueID == ammo_Target_uID) {
 						target_found = true;
 						ammo_Target = &entity;
-						target_pos = { entity.pos.x , entity.pos.y };
+						target_pos = entity.pos;
 						dx = pos.x - entity.pos.x;
 						dy = pos.y - entity.pos.y;
 						dis = std::sqrt(dx * dx + dy * dy);
@@ -2049,7 +2036,7 @@ void Entity::AI()
 			}
 			else {
 
-				SpawnLaser(laser_pos.x, laser_pos.y, 12.5, ang, dam, team, this, { 4, .66 }); // spawn laser
+				SpawnLaser(laser_pos.x, laser_pos.y, Tank_LASER_SPEED, ang, dam, team, this, { 4, .66 }); // spawn laser
 				if (eventLogging) { std::cout << "  Laser shot" << std::endl; }
 			}
 
@@ -2460,7 +2447,7 @@ void Entity::AI()
 			x = gun_barrel[0] * cos(ang * std::numbers::pi / 180) + pos.x;
 			y = gun_barrel[0] * sin(ang * std::numbers::pi / 180) + pos.y;
 
-			SpawnLaser(x, y, 20, ang, dam, team, this, { 2, .75 });
+			SpawnLaser(x, y, Fort_LASER_SPEED, ang, dam, team, this, { 2, .75 });
 
 			laser_cooldown = max_laser_cooldown;
 
@@ -3537,6 +3524,10 @@ int main()
 	loadGameButtons();
 
 	bool max_pop_reached = false;
+	bool last_man_standing = false;
+	autoplay = true;
+	int autoplay_time = -1;
+	int teams_left = -1;
 	// MAIN GAME LOOP
 	while (!quitGame) {
 
@@ -3547,6 +3538,32 @@ int main()
 			updateStats();
 		}
 
+		
+		
+		if (game_ticks % 60 ==  0 && autoplay_time == -1 && autoplay) {
+			last_man_standing = false; teams_left = 0;
+			for (int i = 0; i < numberOfTeams; i++) {
+				if (getFortPop(i) > 0) {
+					teams_left += 1;
+				}		
+			}
+			if (teams_left == 1) { last_man_standing = true; }
+			if (last_man_standing) { autoplay_time = game_ticks + 600; std::cout << "Autoplay will initiate in 10 seconds..." << std::endl; } // If only 1 team has tanks, start demo mode
+		}
+
+		
+		if (!autoplay && autoplay_time != -1) {
+			autoplay_time = -1;
+			std::cout << "Autoplay cancelled." << std::endl;
+		}
+
+		if (autoplay && game_ticks == autoplay_time) {
+			saveJSONData();
+			DemoGame();
+			autoplay_time = -1;
+		}
+
+
 		if (game_ticks % 20 == 0 && !max_pop_reached) {
 			int teams_maxpop = 0;
 			for (int i = 0; i < numberOfTeams; i++) {
@@ -3555,6 +3572,7 @@ int main()
 				}
 			}	
 			max_pop_reached = teams_maxpop >= 2; // If 2 teams are at max population, increase max population
+			
 		}
 
 		if (game_ticks % extra_population_interval == 0 && max_pop_reached) {
@@ -3590,6 +3608,17 @@ int main()
 		updateWind();
 		if (draw_Tiles && game_ticks % 45 == 0) { UpdateTiles(); }
 
+
+
+		
+		if (autoplay) {
+			if (autoplay_time != -1) {
+				renderText(window, { SCREEN_WIDTH / 2, 20 }, "Autoplay in: " + std::to_string((autoplay_time - game_ticks) / 60) + " seconds", Font_1, 20, { 255,255,255 }, 1);
+			}
+			else {
+				renderText(window, { SCREEN_WIDTH / 2, 20 }, "Autoplay Enabled", Font_1, 20, { 255,255,255 }, 1);
+			}
+		}
 
 		// Update Population Data
 		if (game_ticks % 300 == 0) {		// Update every 5 seconds (at 60 FPS)
@@ -4120,11 +4149,18 @@ void handleEvents(sf::RenderWindow& myWindow)
 			case sf::Keyboard::B:
 				draw_softborders = !draw_softborders;
 				break;
-			case sf::Keyboard::D:  // Toggle F3 screen
+			case sf::Keyboard::D:  // Toggle Debug Features
 				DEBUG_FEATURES = !DEBUG_FEATURES;
 				break;
-			case sf::Keyboard::A:  // Screenshot
+			case sf::Keyboard::F3:	// Toggle Stats
+				draw_stats = !draw_stats;
+				break;
+			case sf::Keyboard::F2:  // Screenshot
 				ScreenShot(window);
+				SpawnGameText("SCREENSHOT TAKEN", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 20, 5, 2, true);
+				break;
+			case sf::Keyboard::A:
+				autoplay = !autoplay;
 				break;
 			case sf::Keyboard::U:  // Toggle UI
 				draw_UI = !draw_UI;
@@ -4500,6 +4536,7 @@ void RenderMinimap()
 					else {
 						c.a = (TileArr[i][j].col.a / 2) + (TileArr[i][j].col.a / 3) * TileArr[i][j].flicker_timer / 50;
 					}
+					if (TileArr[i][j].soft_border_tile) { c.a *= .6; }
 
 					if (TileArr[i][j].fort_is_assimilating) {
 						int grid_x = TileArr[i][j].grid_x;
@@ -4636,7 +4673,7 @@ void DrawUI(sf::RenderWindow &surface)
 
 
 	//Render Game Stats
-	if (DEBUG_FEATURES) {
+	if (draw_stats) {
 		std::string text;
 		text = "Entitities: " + std::to_string(EntityArr.size());
 		renderText(surface, { SCREEN_WIDTH - 75, 125 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
@@ -4667,6 +4704,8 @@ void DrawUI(sf::RenderWindow &surface)
 	}
 	// sort team list
 	sort(teamList.begin(), teamList.end(), compareTeam);
+
+	float font_size = 16;
 	// Display Team Fort Stats
 	for (int i = 0; i < teamList.size(); i++) {
 		j = teamList[i][0]; k = teamList[i][1];
@@ -4684,12 +4723,12 @@ void DrawUI(sf::RenderWindow &surface)
 		}
 		
 
-		renderText(surface, { 5, 25.f + (25 * i) }, text, Font_2, 20, n_col, 1, { 0,0,0,n_col.a }, false);
+		renderText(surface, { 5, 25.f + (font_size * 1.25f * i) }, text, Font_2, font_size, n_col, 1, { 0,0,0,n_col.a }, false);
 	}
 
 
 	// Show Team Tanks
-	float last_y = 25 + (teamList.size() * 25);
+	float last_y = (font_size * 3 * 1.25f) + (teamList.size() * font_size * 1.25f);
 	teamList.clear();
 
 	for (int i = 0; i < numberOfTeams; i++) {
@@ -4712,7 +4751,7 @@ void DrawUI(sf::RenderWindow &surface)
 			//text = "Tanks: " + std::to_string(k) + "[" + std::to_string(getSpecialTankPop(j)) + "]";
 			text = std::format("Tanks: {}[{}]", k, getSpecialTankPop(j));
 		}
-		renderText(surface, { 5, 75.f + (25 * i) + last_y }, text, Font_2, 20, n_col, 1, { 0,0,0,n_col.a }, false);
+		renderText(surface, { 5, (font_size * 1.25f * i) + last_y }, text, Font_2, font_size, n_col, 1, { 0,0,0,n_col.a }, false);
 	}
 	
 
@@ -5260,7 +5299,7 @@ void DemoGame(int type)
 	// Adjust game Map Size
 
 	std::vector <float> size_array = { 2500, 3200, 4000, 5000, 8000 };
-	std::vector <float> fort_number_multiplier_array = { 0.6, 1, 1.25, 1.5, 1.75 };
+	std::vector <float> fort_number_multiplier_array = { 0.375, 0.6144, 0.96, 1.5, 2.5 };
 	int size_option = rand() % (int)size_array.size();
 
 	GAME_MAP_WIDTH = size_array[size_option];
@@ -5271,6 +5310,7 @@ void DemoGame(int type)
 	forts_per_team *= fort_number_multiplier_array[size_option];
 
 
+	
 	// Random Map
 	if (type == 0)
 	{
@@ -5283,6 +5323,17 @@ void DemoGame(int type)
 
 		int team_no = (rand() % (numberOfTeams - 1)) + 2;
 		forts_per_team *= (std::sqrt(16 / team_no)) * 1;
+		bool paired_forts = false, triplet_forts = false, quad_forts = false;
+		int temp = rand() % 7; float distance_factor = 1;
+
+		
+		if (temp == 0) { paired_forts = true; }
+		if (temp == 1 || temp == 2) { triplet_forts = true; }
+		if (temp == 3) { quad_forts = true; }
+
+		if (paired_forts) { forts_per_team /= 2; distance_factor = std::sqrt(2); }
+		if (triplet_forts) { forts_per_team /= 3; distance_factor = std::sqrt(3); }
+		if (quad_forts) { forts_per_team /= 4; distance_factor = std::sqrt(4); }
 
 
 		if (RandomMapDebug) { std::cout << "Number of Teams: " + std::to_string(team_no) << std::endl; }
@@ -5394,16 +5445,33 @@ void DemoGame(int type)
 							dy = pos.y - EntityArr[k].pos.y;
 
 							dis = std::sqrt(dx * dx + dy * dy);
-							if (dis <= Fort_RANGE * 1.25 && EntityArr[k].team != team_arr[i]) { repeat = true; break; }
-							if (dis < Fort_RANGE * .5 && EntityArr[k].team == team_arr[i]) { repeat = true; break; }
+							if (dis <= Fort_RANGE * 1.25 * distance_factor && EntityArr[k].team != team_arr[i]) { repeat = true; break; }
+							if (dis < Fort_RANGE * .5 * distance_factor && EntityArr[k].team == team_arr[i]) { repeat = true; break; }
 
 						}
 					}
 
 				}
 
-
-				SpawnFort(pos, team_arr[i]);
+				if (paired_forts || triplet_forts || quad_forts) {
+					int group_size = 2;
+					if (triplet_forts) { group_size = 3; }
+					if (quad_forts) { group_size = 4; }
+					sf::Vector2f group_center = pos;
+					float group_ang = rand() % 360;
+					float group_dis = Fort_RANGE * .3;
+					for (int k = 0; k < group_size; k++) {
+						dx = cos(group_ang * std::numbers::pi / 180) * group_dis + group_center.x;
+						dy = sin(group_ang * std::numbers::pi / 180) * group_dis + group_center.y;
+						pos = { dx, dy };
+						SpawnFort(pos, team_arr[i]);
+						group_ang += 360 / group_size;
+					}
+				}
+				else {
+					SpawnFort(pos, team_arr[i]);
+				}
+				//SpawnFort(pos, team_arr[i]);
 			}
 
 
@@ -5423,7 +5491,19 @@ void DemoGame(int type)
 
 		std::vector <int> team_arr;
 		int team_no = 2;
-		forts_per_team *= std::sqrt(16 / team_no);
+		forts_per_team *= std::sqrt(16 / team_no) * 2;
+
+		bool paired_forts = false, triplet_forts = false, quad_forts = false;
+		int temp = rand() % 7; float distance_factor = 1;
+		
+		if (temp == 0) { paired_forts = true; }
+		if (temp == 1 || temp == 2) { triplet_forts = true; }
+		if (temp == 3) { quad_forts = true; }
+
+		if (paired_forts) { forts_per_team /= 2; distance_factor = 2; }
+		if (triplet_forts) { forts_per_team /= 3; distance_factor = 3; }
+		if (quad_forts) { forts_per_team /= 4; distance_factor = 4; }
+
 		float arc_range = 360.f / team_no;
 		float angle_offset = rand() % 360;
 
@@ -5454,7 +5534,7 @@ void DemoGame(int type)
 
 
 
-		// Soawn Forts
+		// Spawn Forts
 		for (int i = 0; i < forts_per_team; i++) {
 			for (int j = 0; j < team_arr.size(); j++) {
 				bool repeat = true;  repeat_no = 0;
@@ -5484,13 +5564,31 @@ void DemoGame(int type)
 
 							dis = std::sqrt(dx * dx + dy * dy);
 
-							if (team_arr[j] != EntityArr[k].team) { if (dis < Fort_RANGE * 1.1) { repeat = true; } }
-							else { if (dis < Fort_RANGE * .3) { repeat = true; } }
+							if (team_arr[j] != EntityArr[k].team) { if (dis < Fort_RANGE * 1.1 * distance_factor) { repeat = true; } }
+							else { if (dis < Fort_RANGE * .3 * distance_factor) { repeat = true; } }
 						}
 					}
 				}
 
-				SpawnFort(fort_pos, team_arr[j]);
+				if (paired_forts || triplet_forts || quad_forts) {
+					int group_size = 2;
+					if (triplet_forts) { group_size = 3; }
+					if (quad_forts) { group_size = 4; }
+					sf::Vector2f group_center = fort_pos;
+					float group_ang = rand() % 360;
+					float group_dis = Fort_RANGE * .3;
+					for (int k = 0; k < group_size; k++) {
+						dx = cos(group_ang * std::numbers::pi / 180) * group_dis + group_center.x;
+						dy = sin(group_ang * std::numbers::pi / 180) * group_dis + group_center.y;
+						fort_pos = { dx, dy };
+						SpawnFort(fort_pos, team_arr[j]);
+						group_ang += 360 / group_size;
+					}
+				}
+				else {
+					SpawnFort(fort_pos, team_arr[j]);
+				}
+				
 
 			}
 		}
@@ -5613,8 +5711,8 @@ void DemoGame(int type)
 
 		
 		
-		if (paired_forts && GAME_MAP_WIDTH >= 8000) { forts_per_team = 9; }
-		if (triplet_forts && GAME_MAP_WIDTH >= 8000) { forts_per_team = 6; }
+		if (paired_forts && GAME_MAP_WIDTH >= 8000) { forts_per_team = 10; }
+		if (triplet_forts && GAME_MAP_WIDTH >= 8000) { forts_per_team = 7; }
 		if (quad_forts && GAME_MAP_WIDTH >= 8000) { forts_per_team = 5; }
 		
 		
@@ -6375,4 +6473,61 @@ std::string colorToHex(const sf::Color& color)
 		<< std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(color.b);
 
 	return ss.str();
+}
+
+
+sf::Vector2f calculateInterceptPoint(
+	const sf::Vector2f& shooterPos,
+	const sf::Vector2f& targetPos,
+	const sf::Vector2f& targetVel,
+	float projectileSpeed)
+{
+	const sf::Vector2f relativePos = targetPos - shooterPos;
+
+	// Calculate quadratic equation coefficients
+	const float a = targetVel.x * targetVel.x + targetVel.y * targetVel.y - projectileSpeed * projectileSpeed;
+	const float b = 2 * (relativePos.x * targetVel.x + relativePos.y * targetVel.y);
+	const float c = relativePos.x * relativePos.x + relativePos.y * relativePos.y;
+
+	// Calculate discriminant
+	const float discriminant = b * b - 4 * a * c;
+
+	// Handle case where no real solution exists (return predicted position)
+	if (discriminant < 0) {
+		return targetPos + targetVel;
+	}
+
+	const float sqrtDiscriminant = std::sqrt(discriminant);
+
+	// Calculate both possible time solutions
+	const float t1 = (-b + sqrtDiscriminant) / (2 * a);
+	const float t2 = (-b - sqrtDiscriminant) / (2 * a);
+
+	// Choose the smallest positive time value
+	float t = std::max(t1, t2);
+	if (t1 >= 0 && t2 >= 0) {
+		t = std::min(t1, t2);
+	}
+	else if (t2 >= 0) {
+		t = t2;
+	}
+	else if (t1 < 0) {
+		return targetPos + targetVel; // No positive time solution
+	}
+
+	// Return intercept point
+	return targetPos + targetVel * t;
+}
+
+
+double deltaAngle(double a, double b) {
+	double delta = b - a;
+	delta = std::fmod(delta, 360.0);
+	if (delta < -180.0) {
+		delta += 360.0;
+	}
+	else if (delta > 180.0) {
+		delta -= 360.0;
+	}
+	return delta;
 }
