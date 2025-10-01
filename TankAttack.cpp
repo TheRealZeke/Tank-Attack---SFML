@@ -642,7 +642,7 @@ public:
 		fort_tanks_spawned_threshold(0), fort_tanks_healed_threshold(0),
 		HealTankArray{}, special_fort(false),
 		tank_health_arc_angle(0), fort_health_arc_angle(0), fort_assimilation_arc_angle(0),
-		special_tank(false), speed_factor(1.0)
+		special_tank(false), speed_factor(1.0), fort_ang(0), fort_v_ang(0)
 	{
 		
 		if (ID == "tank") {
