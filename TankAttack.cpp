@@ -27,14 +27,8 @@
 #include <json.hpp>
 using json = nlohmann::json;
 // SFML Library
-
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
-// Local Library
-
-#include <algorithm>
-enum MapType { RANDOM, ONE_VS_ONE, ROUND_TABLE };
-
 
 
 ////////////////// Initialize Game Classes and Functions ///////////////////////////////////////////////////
