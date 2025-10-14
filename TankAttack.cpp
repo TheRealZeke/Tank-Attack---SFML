@@ -131,6 +131,7 @@ void renderFormattedText(sf::RenderWindow& surface, const sf::Vector2f& pos, con
 std::string colorToHex(const sf::Color& color);
 sf::Vector2f calculateInterceptPoint(const sf::Vector2f& shooterPos, const sf::Vector2f& targetPos, const sf::Vector2f& targetVel, float projectileSpeed);
 double deltaAngle(double a, double b);
+int ActiveEntityPop();
 
 
 bool eventLogging = false;
@@ -138,6 +139,9 @@ bool devWindow = false;
 sf::Image  TankImg; sf::Image FortImg; sf::Image DeadTankImg[2];
 sf::RenderWindow  window;
 bool quitGame = false;
+
+
+
 
 
 float GameFPSRatio;
@@ -1072,7 +1076,7 @@ public:
 
 		
 		sender = spawn_sender;
-		lost_sender = false;
+		
 		
 		col = oppCol(colorArr[team]);
 		actual_col = dimCol(col, dimColPerc);
@@ -1110,37 +1114,9 @@ public:
 				lost_sender = true;
 			}
 		}*/
-
-		if (sender != nullptr) {
-			try {
-				volatile int dummy = sender->uniqueID;
-			}
-			catch (...) {
-				sender = nullptr;
-				std::cout << "Error caught in Laser.move(), invalid sender pointer" << std::endl;
-			}
-		}
 		
-
 		
-		try {
-			if (sender != nullptr && sender->uniqueID == sender_uniqueID && sender->ID == sender_ID) {
-				// all good
-			}
-			else {
-				sender = nullptr;
-				lost_sender = true;
-			}
-		}
-		catch (...) {
-			sender = nullptr;
-			lost_sender = true;
-			std::cout << "Error caught in Laser.move(), invalid sender pointer" << std::endl;
-		}
-
-
-
-		if (sender == nullptr) {
+		if (sender == nullptr && !lost_sender) {
 			//std::cout << "Looking for sender in EntityArr... (Laser.move)" << std::endl;
 			for (int i = 0; i < EntityArr.size(); i++) {
 				if (EntityArr[i].uniqueID == sender_uniqueID && EntityArr[i].team == team && EntityArr[i].ID == sender_ID) {
@@ -1150,7 +1126,7 @@ public:
 			}
 			if (sender == nullptr) { lost_sender = true; } // Prevent performance lag
 		}
-
+		if (lost_sender) { ia = false; return; }
 
 
 		life -= GameFPSRatio;
@@ -1816,7 +1792,7 @@ void Entity::AI()
 			// Iterating through the Entity array to find the closest friendly available Fort
 			for (int i = 0; i < EntityArr.size(); i++) {
 				// The Last Condition makes it so a Fort freshly captured cannot supply ammo for a brief period
-				if (EntityArr[i].team == team && EntityArr[i].ia && EntityArr[i].ID == "fort" && EntityArr[i].Tank_spawn_timer > -(fort_assimilation_ticks - fort_validhealer_ticks)) {
+				if (EntityArr[i].team == team && EntityArr[i].ia && EntityArr[i].ID == "fort" && EntityArr[i].Tank_spawn_timer > (fort_validhealer_ticks - fort_assimilation_ticks)) {
 					if (eventLogging) { std::cout << "    Checking Fort ID:" + std::to_string(EntityArr[i].uniqueID) + "..." << std::endl; }
 
 
@@ -3009,8 +2985,9 @@ public:
 		}
 		if (draw_softborders && !border_tile) {
 			if (fort != nullptr) {
-				if ((!fort_is_special && distance_from_fort > Fort_RANGE * TransRangeFort * 1.5) ||
-					(fort_is_special && distance_from_fort > Fort_RANGE * 4 * TransRangeFort)) {
+				if ((!fort_is_special && distance_from_fort > Fort_RANGE * TransRangeFort * 1.5) ||		// normal fort
+					(fort_is_special && distance_from_fort > Fort_RANGE * 5 * TransRangeFort)) {		// special fort
+																										// look for neighboring tiles with different fort
 					for (Tile* tile : neighbors) {
 						if (tile->FortID != FortID && tile->team == team) { soft_border_tile = true; break; }
 					}
@@ -3580,7 +3557,7 @@ int main()
 		game_ticks++; frames++; frames2++; current_game_timer++;
 		//if (game_ticks > 1'000'000'000) { quitGame = true; }
 
-		if (game_ticks % 13 == 0) {
+		if (game_ticks % 25 == 0) {
 			updateStats();
 		}
 
@@ -4049,7 +4026,7 @@ void handleEvents(sf::RenderWindow& myWindow)
 			}
 		}
 		// If Tank being followed is NULL or shuffled
-		if (Tank_Followed == nullptr || Tank_Followed_uniqueID != Tank_Followed->uniqueID) {
+		if (Tank_Followed == nullptr || Tank_Followed_uniqueID != Tank_Followed->uniqueID || !Tank_Followed->ia) {
 			bool found = false;
 			// Find Tank with matching ID
 			for (int i = 0; i < EntityArr.size(); i++) {
@@ -4440,12 +4417,21 @@ void RenderEntities()
 		}
 	}
 	
+	if (game_ticks % 667 == 0) {		// Erase Inactive Entities every 667 gameticks
 
-	EntityArr.erase(
-		std::remove_if(EntityArr.begin(), EntityArr.end(),
-			[](const Entity& e) { return !e.ia; }),
-		EntityArr.end()
-	);
+		for (auto& laser : LaserArr) { laser.sender = nullptr; }		// Prevents bugs with lasers pointing to wrong tanks after erasure
+
+		EntityArr.erase(
+			std::remove_if(EntityArr.begin(), EntityArr.end(),
+				[](const Entity& e) { return !e.ia; }),
+			EntityArr.end()
+		);
+
+		for (auto& Laser : LaserArr) {
+			Laser.sender = nullptr;
+		}
+	}
+	
 
 	totalTankPop = 0;
 	for (auto& entity : EntityArr) {
@@ -4457,7 +4443,10 @@ void RenderEntities()
 	//shuffle EntityArr
 
 
-	if (game_ticks % 1200 == 0) {
+	if (game_ticks % 1259 == 0) {
+
+		for (auto& laser : LaserArr) { laser.sender = nullptr; }		// Prevents bugs with lasers pointing to wrong tanks after shuffle
+
 		if (eventLogging || true) {
 			std::cout << std::endl;
 			std::cout << "###== [Gametick:" << std::to_string(game_ticks) << "]  Entities Shuffled ==###" << std::endl;
@@ -4769,7 +4758,7 @@ void DrawUI(sf::RenderWindow &surface)
 	//Render Game Stats
 	if (draw_stats) {
 		std::string text;
-		text = "Entitities: " + std::to_string(EntityArr.size());
+		text = "Entitities: " + std::to_string(ActiveEntityPop());
 		renderText(surface, { SCREEN_WIDTH - 75, 125 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
 		text = "Particles: " + std::to_string(ParticleArr.size());
 		renderText(surface, { SCREEN_WIDTH - 75, 150 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
@@ -5123,7 +5112,7 @@ int getTankPop(int team, int mode)
 {
 	int num = 0;
 	for (int i = 0; i < EntityArr.size(); i++) {
-		if (EntityArr[i].ID == "tank" && EntityArr[i].team == team) {
+		if (EntityArr[i].ID == "tank" && EntityArr[i].team == team && EntityArr[i].ia) {
 			if (mode == 0) {
 				num++;  // Count all tanks
 			}else if(mode == 1) {
@@ -6002,7 +5991,7 @@ void updateStats() {
 	for (int team = 0; team < numberOfTeams; team++) {
 		num[team] = 0;
 		for (int i = 0; i < EntityArr.size(); i++) {
-			if (EntityArr[i].ID == "tank" && EntityArr[i].team == team) {
+			if (EntityArr[i].ID == "tank" && EntityArr[i].team == team && EntityArr[i].ia) {
 				num[team]++;
 			}
 		}
@@ -6013,7 +6002,7 @@ void updateStats() {
 		num[team] = 0;
 		num2[team] = 0;
 		for (int i = 0; i < EntityArr.size(); i++) {
-			if (EntityArr[i].ID == "fort" && EntityArr[i].team == team) {
+			if (EntityArr[i].ID == "fort" && EntityArr[i].team == team && EntityArr[i].ia) {
 				num[team]++;
 				if (EntityArr[i].Tank_spawn_timer < 0) { num2[team]++; } // Tally for Captured Forts
 			}
@@ -6025,7 +6014,7 @@ void updateStats() {
 	for (int team = 0; team < numberOfTeams; team++) {
 		num[team] = 0;
 		for (int i = 0; i < EntityArr.size(); i++) {
-			if (EntityArr[i].ID == "tank" && EntityArr[i].team == team && EntityArr[i].level != 0) {
+			if (EntityArr[i].ID == "tank" && EntityArr[i].team == team && EntityArr[i].level != 0 && EntityArr[i].ia) {
 				num[team]++;
 			}
 		}
@@ -6035,7 +6024,7 @@ void updateStats() {
 	for (int team = 0; team < numberOfTeams; team++) {
 		num[team] = 0;
 		for (int i = 0; i < EntityArr.size(); i++) {
-			if (EntityArr[i].ID == "fort" && EntityArr[i].team == team && EntityArr[i].fort_level != 0) {
+			if (EntityArr[i].ID == "fort" && EntityArr[i].team == team && EntityArr[i].fort_level != 0 && EntityArr[i].ia) {
 				num[team]++;
 			}
 		}
@@ -6632,4 +6621,13 @@ double deltaAngle(double a, double b) {
 		delta -= 360.0;
 	}
 	return delta;
+}
+
+
+int ActiveEntityPop() {
+	int pop = 0;
+	for (auto &entity : EntityArr) {
+		if (entity.ia) { pop++; }
+	}
+	return pop;
 }

@@ -1,6 +1,7 @@
 import json
 import matplotlib.pyplot as plt
 import os
+import numpy as np
 
 
 
@@ -147,9 +148,59 @@ def plot_ratio_against_x(numerator_file, denominator_file, x_file, axis, xlabel,
     
     axis.set_xlabel(xlabel)
     axis.set_ylabel(ylabel)
+    
+
+# def plot_layered(filepath, axis, title):
+#     with open(filepath) as file:
+#         data = json.load(file)
+        
+#     team_no = len(data[0])
+#     for team in range(team_no):
+#         array_x = [data[j][team] for j in range(len(data))]
+#         array_y = list(range(len(data)))
+#         axis.fill_between(array_y, array_x, color=colorArr[team], alpha=0.75)
+#     axis.set_xlabel("time (ticks)")
+#     axis.set_ylabel(title)
+    
+    
+def plot_layered(filepath, axis, title):
+    with open(filepath) as file:
+        data = json.load(file)
+    
+    # Convert to numpy array for easier manipulation
+    data_array = np.array(data)
+    
+    # Calculate cumulative sum along teams axis
+    cumulative_data = np.cumsum(data_array, axis=1)
+    
+    array_y = list(range(len(data)))
+    
+    # Plot stacked areas
+    for team in range(cumulative_data.shape[1]):
+        if team == 0:
+            axis.fill_between(array_y, cumulative_data[:, team], color=colorArr[team], alpha=0.8, label=f'Team {team}')
+        else:
+            axis.fill_between(array_y, cumulative_data[:, team], cumulative_data[:, team-1], color=colorArr[team], alpha=0.98, label=f'Team {team}')
+    
+    axis.set_xlabel("time (ticks)")
+    axis.set_ylabel(title)
 
 
 
+
+
+fig, ax = plt.subplots(1)
+plot_layered("TankPop.json", ax, "Tank Population")
+fig, ax = plt.subplots(1)
+plot_layered("FortPop.json", ax, "Fort Population")
+fig, ax = plt.subplots(1)
+plot_layered("Territory.json", ax, "Territory controlled")
+plt.show()
+fig, ax = plt.subplots(1)
+plot_layered("SpecialTankPop.json", ax, "Special Tank Population")
+fig, ax = plt.subplots(1)
+plot_layered("SpecialFortPop.json", ax, "Special Fort Population")
+plt.show()
 
 
 fig, ax = plt.subplots(1)
@@ -174,6 +225,8 @@ plt.show()
 fig, ax = plt.subplots(1)
 plot_over_time("SpecialFortPop.json", ax, "Special Fort Population")
 plt.show()
+
+
 
 
 
