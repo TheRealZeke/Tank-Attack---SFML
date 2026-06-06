@@ -33,6 +33,22 @@ using json = nlohmann::json;
 
 ////////////////// Initialize Game Classes and Functions ///////////////////////////////////////////////////
 
+enum EntityType {
+	tank,
+	fort,
+	null
+};
+std::string entity_type_string(EntityType type) {
+	if (type == EntityType::tank) {
+		return "tank";
+	}
+	if (type == EntityType::fort) {
+		return "fort";
+	}
+	if (type == EntityType::null) {
+		return "null";
+	}
+}
 class Entity;
 class Laser;
 class Missle;
@@ -46,92 +62,94 @@ class FloatingText;
 
 
 
-sf::Image transformImgCol(sf::Image img, sf::Color tcol, int mode);
-bool compareTeam(const std::vector <int>& team1, const std::vector <int> team2);
-void renderText(sf::RenderWindow& surface, const sf::Vector2f& pos, const std::string& Text, const sf::Font& font, int size, const sf::Color& fill_col, int outline_thickness = 0, const sf::Color& outline_col = { 0,0,0,255 }, bool centered = true);
-void handleEvents(sf::RenderWindow& myWindow);
-void keyboardInputs();
-void drawBorders();
-void ScreenShot(sf::RenderWindow& surface);
-
-void DrawTiles();
-void RenderEntities();
-void RenderLasers();
-void RenderParticles();
-void RenderMissles();
-void RenderMinimap();
-void DrawUI(sf::RenderWindow& surface);
-void RenderGameTexts(sf::RenderWindow& surface);
-void RenderDeadTanks();
-void RenderButtons();
-void RenderFloatingTexts();
-
-
-void SpawnTank(sf::Vector2f pos, int team, int level = 0, bool no_ammo = false);
-void SpawnFort(sf::Vector2f pos, int team, bool captured = false, bool special_fort = false);
-void SpawnLaser(float posx, float posy, float vel, float ang, float dam, float team, std::array<int, 2> sender_specs, std::vector <float> size = { 2,1 });
-void SpawnMissle(sf::Vector2f pos, float vel, float ang, float dam, int no_of_proj, int team, std::array<int, 2> sender_specs, std::array<int, 2> target_specs, float size, int trail_length, float splash_radius, float terminal_vel = 7.5, float power = 1);
-void SpawnParticle(sf::Vector2f pos, float size, float range, int type, float durRate, sf::Color col);
-void SpawnGameText(std::string Text, sf::Vector2f pos, sf::Color col, int size, float dur, float thickness, bool shadow = false);
-void SpawnDeadTank(sf::Vector2f pos, float ang, int team);
-void SpawnButton(sf::Vector2f pos, sf::Vector2f size, std::string text, sf::Color colour, int action, int text_size = 12);
-void SpawnFloatingText(std::string Text, sf::Vector2f pos, sf::Color col, sf::Color outline_col, int size, float dur, sf::Font font, float vel);
-
-
-bool checkLineCollision(sf::FloatRect rect, sf::Vector2f pos1, sf::Vector2f pos2);
-bool lineSegmentIntersection(sf::Vector2f p1, sf::Vector2f p2, sf::Vector2f q1, sf::Vector2f q2);
-
-void drawFilledRect(sf::RenderWindow& myWindow, const sf::FloatRect& rect, sf::Color col);
-void drawLine(sf::RenderWindow& wind, sf::Vector2f pos1, sf::Vector2f pos2, sf::Color col);
-void drawRect(sf::RenderWindow& myWindow, sf::FloatRect rect, sf::Color col, int thickness);
-void drawFilledCircle(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::Color col);
-void drawCircle(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::Color col, int thickness);
-void drawArc(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::Color col, int thickness, float startAngle, float endAngle, int pointCount = 16);
-void drawRegPolygon(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::Color col, int thickness, int sides, float rotation, bool fill);
-void drawThickLine(sf::RenderWindow& wind, sf::Vector2f pos1, sf::Vector2f pos2, float thickness, sf::Color color);
-void drawLogs();
-
-
-sf::Color dimCol(sf::Color col, float perc);
-sf::Color oppCol(const sf::Color& col);
-sf::Color stage_Colour();
-
-int getTankPop(int team, int mode = 0);
-int getFortPop(int team, bool captured = false);
-int getSpecialTankPop(int team);
-int getSpecialFortPop(int team);
-int getAverageTankAge(int team);
-int getTerritory(int team);
-void updateStageColour();
-void UpdateTiles();
-void InitTiles();
-void DemoGame(int type = -1);
-
-void updateWind();
-void loadGameButtons();
-void updateStats();
-void saveJSONData();
-
-
-sf::Vector2f scaleVector(sf::Vector2f& vector, float magnitude);
-float displacement(const sf::Vector2f& vec_1, const sf::Vector2f& vec_2);
-void saveGameState(const std::string& filename);
-std::string getDateString();
-std::string getTimeString();
-std::string OpenFileDialog(const char* filter = "All Files\0*.*\0", HWND owner = NULL);
-
-std::vector<Tile*> getTileNeighbors(Tile& tile);
-
-void calculateTilePopulation();
+bool check_line_collision(sf::FloatRect rect, sf::Vector2f pos1, sf::Vector2f pos2);
+bool compare_team(const std::vector <int>& team1, const std::vector <int> team2);
 bool enemies(int my_team, int their_team);
+bool line_segment_intersection(sf::Vector2f p1, sf::Vector2f p2, sf::Vector2f q1, sf::Vector2f q2);
 
-std::string roundToDecimalPlaces(double value, int n);
-static sf::Color parseHexColor(const std::string& spec, const sf::Color& fallback, int alpha);
-void renderFormattedText(sf::RenderWindow& surface, const sf::Vector2f& pos, const std::string& Text, const sf::Font& font, int size, const sf::Color& fill_col, int outline_thickness, const sf::Color& outline_col, bool centered);
-std::string colorToHex(const sf::Color& color);
-sf::Vector2f calculateInterceptPoint(const sf::Vector2f& shooterPos, const sf::Vector2f& targetPos, const sf::Vector2f& targetVel, float projectileSpeed);
-double deltaAngle(double a, double b);
-int ActiveEntityPop();
+double delta_angle(double a, double b);
+
+float displacement(const sf::Vector2f& vec_1, const sf::Vector2f& vec_2);
+
+int active_entity_pop();
+int get_average_tank_age(int team);
+int get_fort_pop(int team, bool captured = false);
+int get_special_fort_pop(int team);
+int get_special_tank_pop(int team);
+int get_tank_pop(int team, int mode = 0);
+int get_team_territory(int team);
+
+sf::Color dim_color(sf::Color col, float perc);
+sf::Color opposite_color(const sf::Color& col);
+sf::Color stage_color();
+
+sf::Image transform_image_color(sf::Image img, sf::Color tcol, int mode);
+
+sf::Vector2f intercept_point(const sf::Vector2f& shooterPos, const sf::Vector2f& targetPos, const sf::Vector2f& targetVel, float projectileSpeed);
+sf::Vector2f scale_vector(sf::Vector2f& vector, float magnitude);
+
+static sf::Color hex_to_rgb(const std::string& spec, const sf::Color& fallback, int alpha);
+
+std::string get_date_string();
+std::string get_time_string();
+std::string open_file_dialog(const char* filter = "All Files\0*.*\0", HWND owner = NULL);
+std::string rgb_to_hex(const sf::Color& color);
+std::string round_to_decimal_places(double value, int n);
+
+std::vector<Tile*> get_tile_neighbours(Tile& tile);
+
+void check_keyboard_inputs();
+
+void draw_arc(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::Color col, int thickness, float startAngle, float endAngle, int pointCount = 16);
+void draw_borders();
+void draw_circle(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::Color col, int thickness);
+void draw_filled_circle(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::Color col);
+void draw_filled_rect(sf::RenderWindow& myWindow, const sf::FloatRect& rect, sf::Color col);
+void draw_line(sf::RenderWindow& wind, sf::Vector2f pos1, sf::Vector2f pos2, sf::Color col);
+void draw_logs();
+void draw_rect(sf::RenderWindow& myWindow, sf::FloatRect rect, sf::Color col, int thickness);
+void draw_regular_polygon(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::Color col, int thickness, int sides, float rotation, bool fill);
+void draw_thick_line(sf::RenderWindow& wind, sf::Vector2f pos1, sf::Vector2f pos2, float thickness, sf::Color color);
+void draw_tiles();
+void draw_ui(sf::RenderWindow& surface);
+
+void generate_random_map(int type = -1);
+void handle_events(sf::RenderWindow& myWindow);
+void init_tiles();
+void load_game_buttons();
+
+void render_buttons();
+void render_dead_tanks();
+void render_entities();
+void render_floating_texts();
+void render_formatted_text(sf::RenderWindow& surface, const sf::Vector2f& pos, const std::string& Text, const sf::Font& font, int size, const sf::Color& fill_col, int outline_thickness, const sf::Color& outline_col, bool centered);
+void render_game_texts(sf::RenderWindow& surface);
+void render_lasers();
+void render_minimap();
+void render_missles();
+void render_particles();
+void render_text(sf::RenderWindow& surface, const sf::Vector2f& pos, const std::string& Text, const sf::Font& font, int size, const sf::Color& fill_col, int outline_thickness = 0, const sf::Color& outline_col = { 0,0,0,255 }, bool centered = true);
+
+void save_game_state(const std::string& filename);
+void save_json_data();
+
+void spawn_button(sf::Vector2f pos, sf::Vector2f size, std::string text, sf::Color colour, int action, int text_size = 12);
+void spawn_dead_tank(sf::Vector2f pos, float ang, int team);
+void spawn_floating_text(std::string Text, sf::Vector2f pos, sf::Color col, sf::Color outline_col, int size, float dur, sf::Font font, float vel);
+void spawn_fort(sf::Vector2f pos, int team, bool captured = false, bool special_fort = false);
+void spawn_game_text(std::string Text, sf::Vector2f pos, sf::Color col, int size, float dur, float thickness, bool shadow = false);
+void spawn_laser(float posx, float posy, float vel, float ang, float dam, float team, std::array<int, 2> sender_specs, std::vector <float> size = { 2,1 });
+void spawn_missle(sf::Vector2f pos, float vel, float ang, float dam, int no_of_proj, int team, std::array<int, 2> sender_specs, std::array<int, 2> target_specs, float size, int trail_length, float splash_radius, float terminal_vel = 7.5, float power = 1);
+void spawn_particle(sf::Vector2f pos, float size, float range, int type, float durRate, sf::Color col);
+void spawn_tank(sf::Vector2f pos, int team, int level = 0, bool no_ammo = false);
+
+void take_screenshot(sf::RenderWindow& surface);
+
+void update_stage_color();
+void update_stats();
+void update_tile_pop();
+void update_tiles();
+void update_wind();
 
 
 bool eventLogging = false;
@@ -429,7 +447,7 @@ float SCREEN_HEIGHT = _jsonGraphicsData["SCREEN_HEIGHT"];
 float DefaultPartTimer = _jsonGraphicsData["Default_Particle_Ticks"];
 float TransRangeFort = _jsonGraphicsData["Fort_BloomRangeFactor"];
 float TransRangeTank = _jsonGraphicsData["Tank_BloomRangeFactor"];
-int dimColPerc = 75;
+int dim_colorPerc = 75;
 float Tiles_Size = _jsonGraphicsData["Tiles_Size"];
 int GameTextMaxTime = _jsonGraphicsData["GameText_Ticks"];
 int DeadTankLife = _jsonGraphicsData["DeadTank_Ticks"];
@@ -533,135 +551,168 @@ const double M_PI = 3.14159265358979323846;
 class Entity
 {
 public:
-	std::string ID;								// Entty type {Tank or Fort}
-	sf::Vector2f pos, vel, acc;				// Position, Velocity, Acceleration  [Tank, Fort]
-	sf::FloatRect rect;							// SFML rect object [Tank. Fort]
-	float ang;									// Angle of entity [Tank, Fort]
-	float v_ang, a_ang;							// Angular velocity and acceeration [Tank, Fort]
-	float fort_ang, fort_v_ang;					// Fort angle and angular velocity [Fort]
-	int texWidth, texHeight;					// Dimensons of textures [Tank, Fort*]
-	//float wander_time, max_wander_time;			// Wander timing [Tank, Fort]
-	float hp, max_hp;							// HitPoints [Tank, Fort]
-	float dam;									// Damage points [Tank, Fort]
-	float range;								// Range entity can attack [Tank, Fort]
-	bool ia;									// (i)n(a)cation and idle state [Tank, Fort]
-	float targ_ang;								// target angle [Tank, Fort]
-	int team;									// Entity team [Tank, Fort]
-	sf::Color col, opp_col;						// Entity team colour [Fort]
+	Entity* ammo_target;
+	Entity* enemy;
+	Entity* last_bullet_sender;
 
-	//sf::Vector2f wander_pos;					// Wander target position [Tank]
-	sf::Vector2f target_pos;					// Target position
-	bool valid_target;
-	float max_laser_cooldown;					// Maximum laser cooldown [Tank]
-	float laser_cooldown;						// Laser cooldown timer [Tank]
-	float max_ammo_supply;						// Maximum ammo supply [Tank]
-	int ammo_supply;							// Current ammo supply [Tank]
-	bool no_ammo;								// No ammo state [Tank]
-	float max_ammo_supply_time;					// Maximum ammo supply time [Tank]	
-	float ammo_supply_timer;					// Ammo supply timer [Tank]
-
-	Entity* ammo_target; int ammo_target_unique_id, ammo_target_entity_index;	// Target for ammo supply [Tank]
-	Entity* enemy;								// Enemy entity [Tank, Fort]	
-	int entity_index, enemy_entity_index;
-	int last_bullet_team; std::string last_bullet_ID; Entity* last_bullet_sender;	// Last bullet sender [Tank]
-	int tilt_preference;						// Tilt preference for tank [Tank]
-	float lock_target_timer;					// Lock target timer [Tank]
-	float max_lock_target_time;					// Maximum lock target time [Tank]
-
-	std::string enemyString;					// Enemy string for tank [Tank]
-	int kill_count, kill_count_threshold;		// Kill count and threshold for special tank [Tank]
-	int unique_id;								// Unique ID for entity [Tank, Fort]
-	int enemy_unique_id;								// Unique ID of enemy entity [Tank, Fort]
-
-	sf::Sprite entitySprite;
-	int chunk[2];
-
-	float age, old_age;
-
-	// Fort Values
-	int gun_barrel[2];							// Gun barrel length and width [Fort]
-	//float max_target_time, target_time;
-	float max_flicker_time, flicker_vel, flicker_timer;
-	float max_Tank_spawn_time, Tank_spawn_timer;
-	float size;
-	float max_missle_cooldown, missle_cooldown;
-
-	int level;
-	int fort_level, fort_tanks_healed, fort_tanks_spawned;
-	int fort_tanks_spawned_threshold, fort_tanks_healed_threshold;
-
-	std::vector <int> HealTankArray;
-
+	bool ia;
+	bool no_ammo;
 	bool special_fort;
 	bool special_tank;
+	bool valid_target;
+
+	float Tank_spawn_timer;
+	float ang_acc;
+	float age;
+	float ammo_supply_timer;
+	float ang;
+	float dam;
+	float flicker_timer;
+	float flicker_vel;
+	float fort_ang;
+	float fort_assimilation_arc_angle;
+	float fort_health_arc_angle;
+	float fort_ang_vel;
+	float hitpoints;
+	float laser_cooldown;
+	float lock_target_timer;
+	float max_Tank_spawn_time;
+	float max_ammo_supply;
+	float max_ammo_supply_time;
+	float max_flicker_time;
+	float max_hitpoints;
+	float max_laser_cooldown;
+	float max_lock_target_time;
+	float max_missle_cooldown;
+	float missle_cooldown;
+	float old_age;
+	float range;
+	float size;
 	float speed_factor;
+	float tank_health_arc_angle;
+	float targ_ang;
+	float ang_vel;
 
+	int ammo_supply;
+	int ammo_target_entity_index;
+	int ammo_target_unique_id;
+	int chunk[2];
+	int enemy_entity_index;
+	int enemy_unique_id;
+	int entity_index;
+	int fort_level;
+	int fort_tanks_healed;
+	int fort_tanks_healed_threshold;
+	int fort_tanks_spawned;
+	int fort_tanks_spawned_threshold;
+	int gun_barrel[2];
+	int kill_count;
+	int kill_count_threshold;
+	int last_bullet_team;
+	int level;
+	int team;
+	int texHeight;
+	int texWidth;
+	int tilt_preference;
+	int unique_id;
 
-	// Arc angles
-	float tank_health_arc_angle, fort_health_arc_angle, fort_assimilation_arc_angle;
+	sf::Color col;
+	sf::Color opp_col;
 
+	sf::FloatRect rect;
 
+	sf::Sprite entity_sprite;
 
-	Entity(const std::string stringID) :
+	sf::Vector2f acc;
+	sf::Vector2f pos;
+	sf::Vector2f target_pos;
+	sf::Vector2f vel;
+
+	EntityType entity_type;
+
+	std::vector <int> heal_tank_array;
+
+	Entity(const EntityType _entity_type) :
+		heal_tank_array{},
+		entity_type(_entity_type),
+		Tank_spawn_timer(0),
+		ang_acc(0),
+		acc{ 0,0 },
+		age(0),
+		ammo_supply(0),
+		ammo_supply_timer(0),
 		ammo_target(nullptr),
-		enemy(nullptr),
-		last_bullet_sender(nullptr),
-		ID(stringID),
-		pos{ 0,0 }, vel{ 0,0 }, acc{ 0,0 },
-		rect{},
-		ang(0),
-		v_ang(0), a_ang(0),
-		texWidth(0), texHeight(0),
-		//max_wander_time(0),
-		hp(0), max_hp(0),
-		dam(0), range(0),
-		ia(false),
-		targ_ang(0), team(-1), col{}, opp_col{},
-
-		//wander_pos{ 0,0 }, wander_time(0),
-		valid_target(false),
-		target_pos{ 0,0 }, max_laser_cooldown(0),
-		laser_cooldown(0), max_ammo_supply(0),
-		ammo_supply(0), no_ammo(false),
-		max_ammo_supply_time(0), ammo_supply_timer(0),
-
+		ammo_target_entity_index(-1),
 		ammo_target_unique_id(-1),
-		last_bullet_team(-1), last_bullet_ID(""),
-		tilt_preference(0),
-		lock_target_timer(0), max_lock_target_time(0),
-
-		enemyString(""),
-		kill_count(0), kill_count_threshold(0),
-		unique_id(-1), enemy_unique_id(-1),
-		entitySprite{}, chunk{ 0,0 },
-		age(0), old_age(0),
-
+		ang(0),
+		chunk{ 0,0 },
+		col{},
+		dam(0),
+		enemy(nullptr),
+		enemy_entity_index(-1),
+		enemy_unique_id(-1),
+		entity_sprite{},
+		entity_index(-1),
+		flicker_timer(0),
+		flicker_vel(0),
+		fort_ang(0),
+		fort_assimilation_arc_angle(0),
+		fort_health_arc_angle(0),
+		fort_level(0),
+		fort_tanks_healed(0),
+		fort_tanks_healed_threshold(0),
+		fort_tanks_spawned(0),
+		fort_tanks_spawned_threshold(0),
+		fort_ang_vel(0),
 		gun_barrel{ 0,0 },
-		//max_target_time(0), target_time(0),
-		max_flicker_time(0), flicker_vel(0), flicker_timer(0),
-
-		max_Tank_spawn_time(0), Tank_spawn_timer(0),
-		size(0), max_missle_cooldown(0), missle_cooldown(0),
-
-		level(0), fort_level(0), fort_tanks_healed(0), fort_tanks_spawned(0),
-		fort_tanks_spawned_threshold(0), fort_tanks_healed_threshold(0),
-		HealTankArray{}, special_fort(false),
-		tank_health_arc_angle(0), fort_health_arc_angle(0), fort_assimilation_arc_angle(0),
-		special_tank(false), speed_factor(1.0), fort_ang(0), fort_v_ang(0),
-		entity_index(-1), enemy_entity_index(-1)
+		hitpoints(0),
+		ia(false),
+		kill_count(0),
+		kill_count_threshold(0),
+		laser_cooldown(0),
+		last_bullet_sender(nullptr),
+		last_bullet_team(-1),
+		level(0),
+		lock_target_timer(0),
+		max_Tank_spawn_time(0),
+		max_ammo_supply(0),
+		max_ammo_supply_time(0),
+		max_flicker_time(0),
+		max_hitpoints(0),
+		max_laser_cooldown(0),
+		max_lock_target_time(0),
+		max_missle_cooldown(0),
+		missle_cooldown(0),
+		no_ammo(false),
+		old_age(0),
+		opp_col{},
+		pos{ 0,0 },
+		range(0),
+		rect{},
+		size(0),
+		special_fort(false),
+		special_tank(false),
+		speed_factor(1.0),
+		tank_health_arc_angle(0),
+		targ_ang(0),
+		target_pos{ 0,0 },
+		team(-1),
+		texHeight(0),
+		texWidth(0),
+		tilt_preference(0),
+		unique_id(-1),
+		ang_vel(0),
+		valid_target(false),
+		vel{ 0,0 }
 	{
 
-		if (ID == "tank") {
+		if (entity_type == EntityType::tank) {
 			if (eventLogging) {
 				std::cout << "\n";
 				std::cout << "Tank()" << "\n";
 				std::cout << "\n";
 			}
 
-
-			enemyString = "tank";
-
-			//max_wander_time = 300;
 			max_laser_cooldown = (float)Tank_LASER_COOLDOWN;
 			max_ammo_supply = (float)Tank_MAX_AMMO;
 			ammo_supply = (int)max_ammo_supply;
@@ -670,7 +721,7 @@ public:
 			kill_count_threshold = special_tank_killcount;
 		}
 
-		if (ID == "fort") {
+		if (entity_type == EntityType::fort) {
 			if (eventLogging) {
 				std::cout << "\n";
 				std::cout << "Fort()" << "\n";
@@ -680,10 +731,9 @@ public:
 			gun_barrel[0] = fort_gun_length; gun_barrel[1] = fort_gun_width;
 
 			ang = (float)(rand() % 360);
-			fort_ang = (float)(rand() % 360); fort_v_ang = (float)(rand() % 4 + 1) / 4.f; fort_v_ang = (rand() % 2 == 0) ? fort_v_ang : -fort_v_ang;
-
-			//max_target_time = (float)(fort_target_time); target_time = max_target_time;
-			//max_wander_time = (float)(fort_wander_time); wander_time = max_wander_time;
+			fort_ang = (float)(rand() % 360);
+			fort_ang_vel = (float)(rand() % 4 + 1) / 4.f;
+			fort_ang_vel = (rand() % 2 == 0) ? fort_ang_vel : -fort_ang_vel;
 			max_laser_cooldown = (float)(Fort_LASER_COOLDOWN);
 			max_missle_cooldown = max_laser_cooldown * 33 * fort_missle_cooldown_factor;
 			max_Tank_spawn_time = (float)(Fort_SPAWNTANK_TIME);
@@ -696,7 +746,7 @@ public:
 
 	void spawn(sf::Vector2f spawn_pos, int spawn_team)
 	{
-		col = colorArr[team]; opp_col = oppCol(colorArr[team]);
+		col = colorArr[team]; opp_col = opposite_color(colorArr[team]);
 		if (true) {
 			bool unique_idfound = false;
 			if (eventLogging) { std::cout << "  Finding Unique Id" << "\n"; }
@@ -706,22 +756,22 @@ public:
 				for (int i = 0; i < EntityArr.size(); i++) {
 					if ((EntityArr[i].unique_id == unique_id) or unique_id == 0) {
 						unique_idfound = false;
-						if (eventLogging) { std::cout << "  Unique ID: " << unique_id << " already in use; finding new id..." << "\n"; }
+						if (eventLogging) { std::cout << "  uid: " << unique_id << " already in use; finding new id..." << "\n"; }
 						break;
 					}
 				}
 			}
-			if (eventLogging) { std::cout << "  Entity spawned with Unique ID: " << unique_id << "\n"; }
-			GameLogArr.push_back("{" + hexcolorArr[spawn_team] + "}[" + ID + "#" + std::to_string(unique_id) + "] spawned");
+			if (eventLogging) { std::cout << "  Entity spawned with uid: " << unique_id << "\n"; }
+			GameLogArr.push_back("{" + hexcolorArr[spawn_team] + "}[" + entity_type_string(entity_type) + "#" + std::to_string(unique_id) + "] spawned");
 		}
 
-		if (ID == "tank") {
+		if (entity_type == EntityType::tank) {
 			if (eventLogging) {
 				std::cout << "  Tank spawned; GameTick: " << game_ticks << "\n";
 			}
 
 			team = spawn_team;
-			col = colorArr[team]; opp_col = oppCol(col);
+			col = colorArr[team]; opp_col = opposite_color(col);
 			ia = true;
 
 
@@ -737,7 +787,7 @@ public:
 			rect.top = spawn_pos.y + (rect.height / 2);
 
 			texWidth = CompTankTextArr[team].getSize().x; texHeight = CompTankTextArr[team].getSize().y;
-			entitySprite.setTexture(CompTankTextArr[team]);
+			entity_sprite.setTexture(CompTankTextArr[team]);
 
 
 
@@ -745,7 +795,7 @@ public:
 				std::cout << "  Coordinates: " << pos.x << ", " << pos.y << "\n";
 			}
 
-			hp = Tank_HP; max_hp = Tank_HP;
+			hitpoints = Tank_HP; max_hitpoints = Tank_HP;
 			dam = Tank_DAMAGE; range = Tank_RANGE;
 			// LOS_range = range * tank_LOSrange_factor;
 			ang = rand() % 360;
@@ -760,7 +810,7 @@ public:
 
 		}
 
-		if (ID == "fort")
+		if (entity_type == EntityType::fort)
 		{
 			if (eventLogging) {
 				std::cout << "  Fort spawned; GameTick: " << game_ticks << "\n";
@@ -769,12 +819,12 @@ public:
 
 
 			ia = true;
-			max_hp = Fort_HP; hp = max_hp;
+			max_hitpoints = Fort_HP; hitpoints = max_hitpoints;
 			pos = spawn_pos;
 			range = Fort_RANGE;
 			dam = Fort_DAMAGE;
 			team = spawn_team;
-			col = colorArr[team]; opp_col = oppCol(col);
+			col = colorArr[team]; opp_col = opposite_color(col);
 			size = Fort_SIZE;
 
 			rect = { pos.x - size / 2, pos.y - size / 2, size, size };
@@ -783,7 +833,7 @@ public:
 
 
 			texWidth = FortTextArr[team].getSize().x; texHeight = FortTextArr[team].getSize().y;
-			entitySprite.setTexture(FortTextArr[team]);
+			entity_sprite.setTexture(FortTextArr[team]);
 
 
 		}
@@ -798,17 +848,17 @@ public:
 
 	void tilt(int dirc)
 	{
-		if (ID == "tank") {
-			a_ang = .3 * dirc;
+		if (entity_type == EntityType::tank) {
+			ang_acc = .3 * dirc;
 		}
-		if (ID == "fort") {
-			a_ang = .1 * dirc;
+		if (entity_type == EntityType::fort) {
+			ang_acc = .1 * dirc;
 		}
 	}
 
 	void accel(float dirc)
 	{
-		if (ID == "tank") {
+		if (entity_type == EntityType::tank) {
 			acc = { (float)cos(M_PI * ang / 180.f) * .075f * dirc * Tank_SPEED_FACTOR,
 					(float)sin(M_PI * ang / 180.f) * .075f * dirc * Tank_SPEED_FACTOR };
 		}
@@ -816,7 +866,7 @@ public:
 
 	void deccel()
 	{
-		if (ID == "tank") {
+		if (entity_type == EntityType::tank) {
 			acc = { 0,0 };
 			vel *= (float)pow(.99, GameFPSRatio);
 		}
@@ -825,14 +875,14 @@ public:
 
 	void deccelAng()
 	{
-		if (ID == "tank") {
-			a_ang = 0;
-			v_ang *= (float)pow(.9, GameFPSRatio);
+		if (entity_type == EntityType::tank) {
+			ang_acc = 0;
+			ang_vel *= (float)pow(.9, GameFPSRatio);
 		}
 	}
 
 	sf::FloatRect collisionRect() {
-		if (ID == "tank")
+		if (entity_type == EntityType::tank)
 		{
 			double radians = (ang - 90) * M_PI / 180.0;
 			int width = abs(texWidth * cos(radians)) + abs(texHeight * sin(radians));
@@ -841,7 +891,7 @@ public:
 			return rotatedRect;
 		}
 
-		if (ID == "fort")
+		if (entity_type == EntityType::fort)
 		{
 			return rect;
 		}
@@ -849,7 +899,7 @@ public:
 
 	void lock_target()
 	{
-		if (ID == "tank") {
+		if (entity_type == EntityType::tank) {
 
 			if (eventLogging) {
 				std::cout << "Tank.lock_target(); Gametick: " << game_ticks << "\n";
@@ -874,7 +924,7 @@ public:
 					int dy = pos.y - entity.pos.y;
 
 					double dis = std::sqrt(dx * dx + dy * dy);	// calculate distance from entity
-					if (level == 1 && entity.ID == "fort") { dis *= 0.5; }	// Special tanks prefer attacking forts
+					if (level == 1 && entity.entity_type == EntityType::fort) { dis *= 0.5; }	// Special tanks prefer attacking forts
 
 					if (dis < small_dis) {		// if entity distance is lower than previous lowest
 						small_dis = dis;		// reset smallest distance
@@ -901,7 +951,7 @@ public:
 			}
 		}
 
-		if (ID == "fort")
+		if (entity_type == EntityType::fort)
 		{
 			if (eventLogging) {
 				std::cout << "Fort.lock_target()" << "\n";
@@ -918,7 +968,7 @@ public:
 				if (Tank_spawn_timer > 0) {
 					for (int i = 0; i < EntityArr.size(); i++) {
 						if (EntityArr[i].ia && enemies(team, EntityArr[i].team)) {
-							if (FORTS_ATTACK_FORTS || EntityArr[i].ID != "fort") {
+							if (FORTS_ATTACK_FORTS || EntityArr[i].entity_type != EntityType::fort) {
 								dx = pos.x - EntityArr[i].pos.x;
 								dy = pos.y - EntityArr[i].pos.y;
 								dis = std::sqrt(dx * dx + dy * dy);
@@ -937,7 +987,7 @@ public:
 
 				if (found) {
 					if (FORT_AIMBOT) {
-						target_pos = calculateInterceptPoint(pos, enemy->pos, enemy->vel, Fort_LASER_SPEED);
+						target_pos = intercept_point(pos, enemy->pos, enemy->vel, Fort_LASER_SPEED);
 					}
 					else {
 						target_pos = enemy->pos;
@@ -947,9 +997,9 @@ public:
 		}
 	}
 
-	float getTerritoryPower() {
-		if (ID == "fort") {
-			//if (eventLogging) { std::cout << "Fort.getTerritoryPower() called by Fort unique_id:" << unique_id << " index:" << entity_index << "\n"; }
+	float get_fort_territory_power() {
+		if (entity_type == EntityType::fort) {
+			//if (eventLogging) { std::cout << "Fort.get_fort_territory_power() called by Fort unique_id:" << unique_id << " index:" << entity_index << "\n"; }
 			if (Tank_spawn_timer < 0) { 
 				//if (eventLogging) {
 				//	std::cout << "  fort has territory power of assimilating fort\n";
@@ -970,11 +1020,11 @@ public:
 			}
 		}
 		else{
-			std::cout << "IMPOSSIBLE ERROR: NON FORT (ID = " << ID << " with unique_id:" << unique_id << " CALLED A METHOD ONLY FORTS SHOULD CALL\n";
+			std::cout << "IMPOSSIBLE ERROR: NON FORT (UID = " << entity_type << " with unique_id:" << unique_id << " CALLED A METHOD ONLY FORTS SHOULD CALL\n";
 		}
 	}
 	bool isAssimilating() {
-		if (ID == "fort") {
+		if (entity_type == EntityType::fort) {
 			if (eventLogging) { std::cout << "Fort.isAssimilating()" << "\n"; }
 			if (Tank_spawn_timer < 0) { return true; }
 			else { return false; }
@@ -986,9 +1036,9 @@ public:
 		if (lev == 1) {
 			dam = Tank_DAMAGE * special_tank_damage_factor;
 			max_ammo_supply = Tank_MAX_AMMO * special_tank_ammo_factor;
-			float ratio = hp / max_hp;
-			max_hp = Tank_HP * special_tank_hitpoints_factor;
-			hp = max_hp * ratio;
+			float ratio = hitpoints / max_hitpoints;
+			max_hitpoints = Tank_HP * special_tank_hitpoints_factor;
+			hitpoints = max_hitpoints * ratio;
 			speed_factor = special_tank_speed_factor;
 			range = Tank_RANGE * special_tank_range_factor;
 			level = 1;
@@ -1013,7 +1063,7 @@ public:
 	float dam, life, max_life;
 	Entity* sender;
 	int chunks[2];
-	std::string sender_ID;
+	EntityType sender_entity_type;
 	int sender_unique_id;
 	int sender_entity_index;
 	int sender_level;
@@ -1026,7 +1076,7 @@ public:
 	Laser() :
 		pos({ 0,0 }), last_pos({ 0,0 }), vel({ 0,0 }), team(NULL), ia(false), col(), actual_col(),
 		unique_id(-1), dam(0), life(60), max_life(60), sender(nullptr), chunks{ 0,0 },
-		sender_ID(""), sender_unique_id(NULL), sender_level(NULL), size({}), lost_sender(false), sender_entity_index(-1)
+		sender_entity_type(EntityType::null), sender_unique_id(NULL), sender_level(NULL), size({}), lost_sender(false), sender_entity_index(-1)
 	{
 	}
 
@@ -1070,15 +1120,15 @@ public:
 
 
 
-		col = oppCol(colorArr[team]);
-		actual_col = dimCol(col, dimColPerc);
+		col = opposite_color(colorArr[team]);
+		actual_col = dim_color(col, dim_colorPerc);
 
 
 		
 
 
 		if (eventLogging) { std::cout << "  accessing sender pointer..." << "\n"; };
-		sender_ID = sender->ID;
+		sender_entity_type = sender->entity_type;
 		sender_level = sender->level;
 
 	
@@ -1099,7 +1149,7 @@ public:
 		bool local_event_logging = true;
 		bool search_for_sender = false;
 
-		if (sender_unique_id <= -1) {	// Invalid unique ID, should be impossible, but destroy Laser object nonetheless
+		if (sender_unique_id <= -1) {	// Invalid uid, should be impossible, but destroy Laser object nonetheless
 			ia = false;
 			return;
 		}
@@ -1174,32 +1224,32 @@ public:
 		if (eventLogging) { std::cout << "  Laser Collision check" << "\n"; }
 		for (Entity& entity : EntityArr) {
 			if (entity.ia && enemies(team, entity.team)) {
-				if ((FORTS_ATTACK_FORTS || sender->ID != "fort" || entity.ID == "tank") && entity.hp > 0) {
+				if ((FORTS_ATTACK_FORTS || sender->entity_type != EntityType::fort || entity.entity_type == EntityType::tank) && entity.hitpoints > 0) {
 					//if (laserBoundingBox.intersects(entity.collisionRect())) {
-					if (checkLineCollision(entity.collisionRect(), pos, last_pos)) {
+					if (check_line_collision(entity.collisionRect(), pos, last_pos)) {
 						collision_found = true;
-						entity.hp -= dam;
+						entity.hitpoints -= dam;
 						entity.last_bullet_team = team;
 
 						// Update Kill count of sender
-						if (entity.hp <= 0 && entity.ID == "tank") {
+						if (entity.hitpoints <= 0 && entity.entity_type == EntityType::tank) {
 							sender->kill_count += 1;
-							GameLogArr.push_back("{" + hexcolorArr[sender->team] + "}[" + sender->ID + "#" + std::to_string(sender->unique_id) + "] killed " +
-								"{" + hexcolorArr[entity.team] + "}[" + entity.ID + "#" + std::to_string(entity.unique_id) + "]");
-							if (sender->ID == "tank") {
+							GameLogArr.push_back("{" + hexcolorArr[sender->team] + "}[" + entity_type_string(sender->entity_type) + "#" + std::to_string(sender->unique_id) + "] killed " +
+								"{" + hexcolorArr[entity.team] + "}[" + entity_type_string(entity.entity_type) + "#" + std::to_string(entity.unique_id) + "]");
+							if (sender->entity_type == EntityType::tank) {
 								PvP_Tanks_Killed[sender->team] += 1;
 								PvP_Tanks_Lost[entity.team] += 1;
-								sf::Color outline_col = dimCol(oppCol(colorArr[sender->team]), 25);
+								sf::Color outline_col = dim_color(opposite_color(colorArr[sender->team]), 25);
 								if (GameScreenRect.contains(pos)) {
-									SpawnFloatingText("+1 Kill", entity.pos, colorArr[sender->team], outline_col, 18, 1, Font_2, .25);
+									spawn_floating_text("+1 Kill", entity.pos, colorArr[sender->team], outline_col, 18, 1, Font_2, .25);
 								}
 								if (GameScreenRect.contains(sender->pos)) {
 									if (special_tank_killcount != -1) {
 										if (sender->kill_count == special_tank_killcount) {
-											SpawnFloatingText("Veteren", sender->pos, outline_col, { 0,0,0 }, 20, 2.5, Font_2, .25);
+											spawn_floating_text("Veteren", sender->pos, outline_col, { 0,0,0 }, 20, 2.5, Font_2, .25);
 										}
 										else if (sender->kill_count % sender->kill_count_threshold == 0 && sender->kill_count > special_tank_killcount) {
-											SpawnFloatingText("KillStreak!", sender->pos, outline_col, { 0,0,0 }, 20, 2.5, Font_2, .25);
+											spawn_floating_text("KillStreak!", sender->pos, outline_col, { 0,0,0 }, 20, 2.5, Font_2, .25);
 										}
 									}
 								}
@@ -1216,7 +1266,7 @@ public:
 			if (GameScreenRect.contains(pos)) {
 				laserhit01.play();
 				for (int j = 0; j < 4; j++) {
-					SpawnParticle(pos, 1, 4, 1, .5, col);
+					spawn_particle(pos, 1, 4, 1, .5, col);
 				}
 			}
 		}
@@ -1232,20 +1282,20 @@ public:
 		if (ratio < 0) { ratio = 0; }
 
 		actual_col.a = (sf::Uint8)ratio;
-		drawThickLine(window, G_pos, G_pos - size[1] * (vel), size[0], actual_col);
+		draw_thick_line(window, G_pos, G_pos - size[1] * (vel), size[0], actual_col);
 
 		if (eventLogging) { std::cout << "  Laser Drawn" << "\n"; }
 
 
 		// Draw Particles
-		if (sender_ID == "tank") {
+		if (sender_entity_type == EntityType::tank) {
 			if (rand() % 100 <= 20 * GameFPSRatio) {
-				SpawnParticle(pos, 2, .1, 2, 1, col);
+				spawn_particle(pos, 2, .1, 2, 1, col);
 			}
 		}
-		else if (sender_ID == "fort") {
+		else if (sender_entity_type == EntityType::fort) {
 			if (rand() % 100 <= 33 * GameFPSRatio) {
-				SpawnParticle(pos, 2, .1, 2, 1, col);
+				spawn_particle(pos, 2, .1, 2, 1, col);
 			}
 		}
 	}
@@ -1280,7 +1330,7 @@ public:
 	sf::CircleShape projectile;
 	int sender_unique_id, target_unique_id, senderteam;
 	int sender_entity_index, target_entity_index;
-	std::string target_StringID, sender_StringID;
+	std::string target_entity_type, sender_entity_type;
 	bool stray = false;
 
 
@@ -1288,7 +1338,7 @@ public:
 		ia(false), pos({ 0,0 }), lpos({ 0,0 }), vel({ 0,0 }), acc({ 0,0 }), id(-1), dam(0), no_of_proj(1), life(0),
 		target(nullptr), sender(nullptr), last_pos({}), team(-1), col(sf::Color::White), size(0), trail_length(10),
 		max_life(180), ang(0), splash_radius(0), terminal_vel(0), power(0), projectile(), sender_unique_id(NULL), target_unique_id(NULL), senderteam(NULL),
-		target_StringID(""), sender_StringID(""), stray(false)
+		target_entity_type(""), sender_entity_type(""), stray(false)
 	{
 	}
 
@@ -1350,7 +1400,7 @@ public:
 		life = max_life;
 
 		
-		target_StringID = target->ID;
+		target_entity_type = target->entity_type;
 	
 
 		trail_length = sp_trail_length;
@@ -1388,7 +1438,7 @@ public:
 				t_col.a = ratio + 63;
 
 				t_pos -= {Camera_Pos[0], Camera_Pos[1]}; t_pos2 -= {Camera_Pos[0], Camera_Pos[1]};
-				drawThickLine(window, t_pos, t_pos2, size / 2, t_col);
+				draw_thick_line(window, t_pos, t_pos2, size / 2, t_col);
 			}
 		}
 
@@ -1402,7 +1452,7 @@ public:
 
 
 		projectile.setFillColor(t_col);
-		t_col = dimCol(t_col, 25);
+		t_col = dim_color(t_col, 25);
 		t_col.a = ratio;
 		projectile.setOutlineColor(t_col);
 		projectile.move({ -Camera_Pos[0], -Camera_Pos[1] });
@@ -1500,45 +1550,6 @@ public:
 		}
 		
 
-
-		//if (!stray) {	// If Missle is not a stray missle
-		//	if (target == nullptr || target->unique_id != target_unique_id || target->ID != target_StringID || !enemies(team, target->team)) {  // If missle target is null OR missle unique ID is invalid OR mislle target type is musaligned OR missle and target are on the same team
-		//		bool found = false;
-		//		for (int i = 0; i < EntityArr.size(); i++) {	// Iterate through entities
-		//			if (EntityArr[i].unique_id == target_unique_id && target_StringID == EntityArr[i].ID && enemies(team, EntityArr[i].team)) {	// If unique ID, sring ID are aligned and 
-		//				target = &EntityArr[i];
-		//				found = true;
-		//				break;
-		//			}
-		//		}
-		//		if (!found) {
-		//			if (!SMART_MISSLES) { stray = true; }
-		//			target = nullptr;
-		//			if (SMART_MISSLES && !stray) {	// Give Idle Missle New Target
-		//				stray = true;
-		//				float lowest_distance = -1;
-		//				float distance, dx, dy;
-		//				for (int i = 0; i < EntityArr.size(); i++) {
-		//					if (EntityArr[i].team != team && EntityArr[i].ID == "tank" && EntityArr[i].ia) {
-		//						dx = pos.x - EntityArr[i].pos.x; dy = pos.y - EntityArr[i].pos.y;
-		//						distance = std::sqrt(dx * dx + dy * dy);
-		//						if (distance < lowest_distance || lowest_distance == -1) {
-		//							lowest_distance = distance;
-		//							target = &EntityArr[i];
-		//							target_unique_id = EntityArr[i].unique_id;
-		//							target_StringID = EntityArr[i].ID;
-		//							stray = false;
-		//						}
-		//					}
-		//				}
-		//			}
-		//		}
-
-		//	}
-		//}
-
-
-
 		float dx, dy, t_ang, t_vel, ratio;
 		float disx, disy;
 		sf::Vector2f l_pos;
@@ -1606,15 +1617,15 @@ public:
 
 		// Draw Particles
 		if (rand() % 100 <= 25 * GameFPSRatio) {
-			SpawnParticle(pos, 3, 1, 2, 1, col);
-			SpawnParticle(pos, 3, 1, 2, 1, oppCol(col));
+			spawn_particle(pos, 3, 1, 2, 1, col);
+			spawn_particle(pos, 3, 1, 2, 1, opposite_color(col));
 		}
 
 		// Check Collisions
 		for (int i = 0; i < EntityArr.size(); i++) {
 			if (EntityArr[i].ia && EntityArr[i].team != team) {
-				if (FORTS_ATTACK_FORTS || EntityArr[sender_entity_index].ID != "fort" || EntityArr[i].ID == "tank") {
-					if (checkLineCollision(EntityArr[i].collisionRect(), pos, lpos)) {
+				if (FORTS_ATTACK_FORTS || EntityArr[sender_entity_index].entity_type != EntityType::fort || EntityArr[i].entity_type == EntityType::tank) {
+					if (check_line_collision(EntityArr[i].collisionRect(), pos, lpos)) {
 
 						ia = false;
 						explode();
@@ -1641,7 +1652,7 @@ public:
 		}*/
 		if (sender == nullptr) { ia = false; return; }
 		for (int i = 0; i < no_of_proj; i++) {
-			SpawnLaser(pos.x, pos.y, (splash_radius * .75) + ((rand() % 25) * splash_radius / 100), rand() % 360, dam, team, {sender_entity_index, sender_unique_id}, { 5, 1 });
+			spawn_laser(pos.x, pos.y, (splash_radius * .75) + ((rand() % 25) * splash_radius / 100), rand() % 360, dam, team, {sender_entity_index, sender_unique_id}, { 5, 1 });
 		}
 	}
 
@@ -1677,7 +1688,7 @@ void Entity::AI()
 
 	if (!valid_index) {
 		if (eventLogging) {
-			std::cout << "Index for entity ID:" << unique_id << " was misaligned, aligning... \n";
+			std::cout << "Index for entity uid:" << unique_id << " was misaligned, aligning... \n";
 		}
 		for (int i = 0; i < EntityArr.size(); i++) {
 			if (EntityArr[i].unique_id == unique_id) {
@@ -1690,14 +1701,14 @@ void Entity::AI()
 			}
 		}
 		if (!valid_index) {
-			std::cout << "IMPOSSIBLE ERROR: ENTITY ID:" << unique_id << "NOT IN ENTITY ARRAY, ENTITY WILL NOW BE DELETED!\n";
+			std::cout << "IMPOSSIBLE ERROR: ENTITY UID:" << unique_id << "NOT IN ENTITY ARRAY, ENTITY WILL NOW BE DELETED!\n";
 			ia = false;
 			return;
 		}
 	}
 
 
-	if (ID == "tank")
+	if (entity_type == EntityType::tank)
 	{
 
 		if (level == 1) { upgradeTank(1); }
@@ -1706,10 +1717,10 @@ void Entity::AI()
 		if (eventLogging) {
 			std::cout << "\n";
 			std::cout << "Tank.AI(); GameTick: " << game_ticks << "\n";
-			std::cout << "  Tank ID: " << unique_id << "  Tank Pos: " << pos.x << "," << pos.y << "\n";
+			std::cout << "  Tank uid: " << unique_id << "  Tank Pos: " << pos.x << "," << pos.y << "\n";
 			std::cout << "  lock_target Timer: " << lock_target_timer << "; no_ammo: " << no_ammo << "\n";
 			if (enemy != nullptr) {
-				std::cout << "  Enemy ID: " << enemy->unique_id << "; Enemy Pos: " << enemy->pos.x << "," << enemy->pos.y << "\n";
+				std::cout << "  Enemy uid: " << enemy->unique_id << "; Enemy Pos: " << enemy->pos.x << "," << enemy->pos.y << "\n";
 			}
 		}
 
@@ -1774,7 +1785,7 @@ void Entity::AI()
 			}
 			
 
-			if (!target_is_valid) {	// Reset the pointer and ID if invalid
+			if (!target_is_valid) {	// Reset the pointer and uid if invalid
 				ammo_target = nullptr;
 				ammo_target_unique_id = -1;
 				ammo_target_entity_index - 1;
@@ -1800,17 +1811,17 @@ void Entity::AI()
 			switch (level)
 			{
 			case 1:
-				if (!no_ammo) { hp += (max_hp * GameFPSRatio * special_tank_healing_factor / 100) / 60; }	// Heal Special Tank
-				if (hp > max_hp) { hp = max_hp; }															// Prevent Overhealing
+				if (!no_ammo) { hitpoints += (max_hitpoints * GameFPSRatio * special_tank_healing_factor / 100) / 60; }	// Heal Special Tank
+				if (hitpoints > max_hitpoints) { hitpoints = max_hitpoints; }															// Prevent Overhealing
 				break;
 			}
 		}
 
 		// Check Tank Ammo situation
-		if ((ammo_supply <= 0 || hp <= max_hp * PanicHealthPerc) && NEED_SUPPLIES) {
+		if ((ammo_supply <= 0 || hitpoints <= max_hitpoints * PanicHealthPerc) && NEED_SUPPLIES) {
 			if (!no_ammo) { // If Tank JUST lost all ammo or health reaches critical
 				for (int i = 0; i < 10; i++) {
-					SpawnParticle(pos, 4, 2, 2, .5, col);
+					spawn_particle(pos, 4, 2, 2, .5, col);
 				}
 			}
 			no_ammo = true;
@@ -1818,17 +1829,17 @@ void Entity::AI()
 
 
 		// Tank Death Conditions
-		if (hp <= 0) {
+		if (hitpoints <= 0) {
 			ia = false;
 
 			// Spawn Dead tank
-			SpawnDeadTank(pos, ang, team);
+			spawn_dead_tank(pos, ang, team);
 			// Spawn Particles (Exploson effect)
 			for (int i = 0; i < 10; i++) {
-				SpawnParticle(pos, 8, .5, 2, 1.5, col);
+				spawn_particle(pos, 8, .5, 2, 1.5, col);
 				for (int j = 0; j < 2; j++) {
-					SpawnParticle(pos, 3, 1.2, 1, .8, col);
-					SpawnParticle(pos, 3, 2, 1, .8, oppCol(col));
+					spawn_particle(pos, 3, 1.2, 1, .8, col);
+					spawn_particle(pos, 3, 2, 1, .8, opposite_color(col));
 				}
 			}
 			// Play Sound
@@ -1860,7 +1871,7 @@ void Entity::AI()
 				// Use aimbot logic if enabled, otherwise just aim at enemy's current position
 				if (TANK_AIMBOT) {
 					// Predict where to shoot based on enemy movement and projectile speed
-					target_pos = calculateInterceptPoint(pos, enemy->pos, enemy->vel, Tank_LASER_SPEED);
+					target_pos = intercept_point(pos, enemy->pos, enemy->vel, Tank_LASER_SPEED);
 				}
 				else {
 					target_pos = enemy->pos;
@@ -1895,25 +1906,25 @@ void Entity::AI()
 			// Iterating through the Entity array to find the closest friendly available Fort
 			for (int i = 0; i < EntityArr.size(); i++) {
 				// The Last Condition makes it so a Fort freshly captured cannot supply ammo for a brief period
-				if (EntityArr[i].team == team && EntityArr[i].ia && EntityArr[i].ID == "fort" && EntityArr[i].Tank_spawn_timer > (fort_validhealer_ticks - fort_assimilation_ticks)) {
-					if (eventLogging) { std::cout << "    Checking Fort ID:" + std::to_string(EntityArr[i].unique_id) + "..." << "\n"; }
+				if (EntityArr[i].team == team && EntityArr[i].ia && EntityArr[i].entity_type == EntityType::fort && EntityArr[i].Tank_spawn_timer > (fort_validhealer_ticks - fort_assimilation_ticks)) {
+					if (eventLogging) { std::cout << "    Checking Fort uid:" + std::to_string(EntityArr[i].unique_id) + "..." << "\n"; }
 
 
 					// Forts have a waiting list, first check if Fort is not already fully booked
-					if (!(EntityArr[i].HealTankArray.size() < maxTankHealArray)) { // If Fort is overburdened with Healing Tanks
+					if (!(EntityArr[i].heal_tank_array.size() < maxTankHealArray)) { // If Fort is overburdened with Healing Tanks
 						if (eventLogging) {
 							std::cout << "    Fort Healing Tank Array is full, checking if Tank is on the List..." << "\n";
 							std::cout << "    Fort Healing List [";
-							for (int k = 0; k < EntityArr[i].HealTankArray.size(); k++) {
-								std::cout << std::to_string(EntityArr[i].HealTankArray[k]);
-								if (k < EntityArr[i].HealTankArray.size() - 1) { std::cout << ","; }
+							for (int k = 0; k < EntityArr[i].heal_tank_array.size(); k++) {
+								std::cout << std::to_string(EntityArr[i].heal_tank_array[k]);
+								if (k < EntityArr[i].heal_tank_array.size() - 1) { std::cout << ","; }
 							}
 							std::cout << "]" << "\n";
 						}
 
-						for (int j = 0; j < EntityArr[i].HealTankArray.size(); j++) {  // Check if Tank is on List
+						for (int j = 0; j < EntityArr[i].heal_tank_array.size(); j++) {  // Check if Tank is on List
 
-							if (unique_id == EntityArr[i].HealTankArray[j]) {
+							if (unique_id == EntityArr[i].heal_tank_array[j]) {
 								final_unit_index = i;
 								unit_found = true;
 								ammo_target = &EntityArr[i];
@@ -1948,17 +1959,17 @@ void Entity::AI()
 			if (unit_found) {	// At least one Fort was found
 				// Add Tank to Healing List
 				bool already_in_list = false;
-				for (int j = 0; j < EntityArr[final_unit_index].HealTankArray.size(); j++) {	// Iterate through Fort booking list
-					if (EntityArr[final_unit_index].HealTankArray[j] == unique_id) {				// Check if Tank has already booked the Fort
+				for (int j = 0; j < EntityArr[final_unit_index].heal_tank_array.size(); j++) {	// Iterate through Fort booking list
+					if (EntityArr[final_unit_index].heal_tank_array[j] == unique_id) {				// Check if Tank has already booked the Fort
 						already_in_list = true;
 					}
 				}
-				if (!already_in_list) { EntityArr[final_unit_index].HealTankArray.push_back(unique_id); } // Book Tank to Fort if not already booked, to prevent tanks from booking twice
+				if (!already_in_list) { EntityArr[final_unit_index].heal_tank_array.push_back(unique_id); } // Book Tank to Fort if not already booked, to prevent tanks from booking twice
 
 
 				if (eventLogging) {
 					std::cout << "    Ammo Target found" << "\n";
-					std::cout << "    Ammo Target ID: " << ammo_target->unique_id << "\n";
+					std::cout << "    Ammo Target uid: " << ammo_target->unique_id << "\n";
 					target_pos = ammo_target->pos;
 
 				}
@@ -2111,8 +2122,8 @@ void Entity::AI()
 		while (targ_ang < 0) { targ_ang += 360; }
 		while (targ_ang >= 360) { targ_ang -= 360; }
 
-		// Rotate tank using deltaAngle
-		double dAng = deltaAngle(ang, targ_ang);
+		// Rotate tank using delta_angle
+		double dAng = delta_angle(ang, targ_ang);
 		if (std::abs(dAng) > 1.5) {
 			tilt((dAng > 0) ? 1 : -1);
 		}
@@ -2152,8 +2163,8 @@ void Entity::AI()
 
 		if (no_ammo) {
 			// HP affects Tank Speed
-			if (DAMAGED_MOVE_FAST) { tankspeed = 2 - (hp / max_hp); }
-			else { tankspeed = 1 + (hp / max_hp); }
+			if (DAMAGED_MOVE_FAST) { tankspeed = 2 - (hitpoints / max_hitpoints); }
+			else { tankspeed = 1 + (hitpoints / max_hitpoints); }
 
 			if (std::abs(dAng) > 180) {
 				accel((dx > 0) ? tankspeed : -tankspeed);
@@ -2212,35 +2223,35 @@ void Entity::AI()
 						if (_dis < ammo_target->range / 15 && ammo_target->ia) { // If Tank is close enough to Fort and Fort is still valid
 							deccel();	// decelerate Tank
 
-							if (hp < max_hp) {
-								hp += max_hp / 25;	// Heal Tank by 4% of max HP per frame
+							if (hitpoints < max_hitpoints) {
+								hitpoints += max_hitpoints / 25;	// Heal Tank by 4% of max HP per frame
 							}
 							else {
 								// Heal Fort
 								ammo_target->fort_tanks_healed += 1; // Increment Fort's healed tanks counter
 
-								if (ammo_target->hp < ammo_target->max_hp && FORT_HEALING) { // If Fort is not at max HP and healing is enabled
-									if (ammo_target->fort_level == 1) { ammo_target->hp += ammo_target->max_hp * tank_specialfort_heal_percent; } // If Fort is a special fort,
-									else if (ammo_target->fort_level == 0) { ammo_target->hp += ammo_target->max_hp * tank_fort_heal_percent; } // If Fort is a normal fort
+								if (ammo_target->hitpoints < ammo_target->max_hitpoints && FORT_HEALING) { // If Fort is not at max HP and healing is enabled
+									if (ammo_target->fort_level == 1) { ammo_target->hitpoints += ammo_target->max_hitpoints * tank_specialfort_heal_percent; } // If Fort is a special fort,
+									else if (ammo_target->fort_level == 0) { ammo_target->hitpoints += ammo_target->max_hitpoints * tank_fort_heal_percent; } // If Fort is a normal fort
 
 
-									if (ammo_target->hp > ammo_target->max_hp) {
-										ammo_target->hp = ammo_target->max_hp; // prevent overhealing
+									if (ammo_target->hitpoints > ammo_target->max_hitpoints) {
+										ammo_target->hitpoints = ammo_target->max_hitpoints; // prevent overhealing
 									}
 								}
 
 								// Finished Reloading Ammo
 								no_ammo = false;  // Reset no_ammo boolean
 								ammo_supply = max_ammo_supply;	// Reset ammo supply to max
-								hp = max_hp;	// Reset HP to max HP
+								hitpoints = max_hitpoints;	// Reset HP to max HP
 
 
 								// Sound and Particle Effects
 								if (GameScreenRect.contains(pos)) {
 									tankreload01.play();
 									for (int i = 0; i < 5; i++) {
-										SpawnParticle(pos, 3, 2, 2, 1, col);
-										SpawnParticle(pos, 3, 2, 2, 1, oppCol(col));
+										spawn_particle(pos, 3, 2, 2, 1, col);
+										spawn_particle(pos, 3, 2, 2, 1, opposite_color(col));
 									}
 								}
 
@@ -2268,14 +2279,14 @@ void Entity::AI()
 
 			// Spawn Projectile to shoot
 			if ((ammo_supply <= Tank_MISSLE_NO && false) || level > 0) {
-				SpawnMissle(laser_pos, tank_missle_velocity, ang, dam * tank_missle_damagefactor, tank_missle_projectile_no,
+				spawn_missle(laser_pos, tank_missle_velocity, ang, dam * tank_missle_damagefactor, tank_missle_projectile_no,
 					team, { entity_index, unique_id }, {enemy_entity_index, enemy_unique_id}, Tank_Missle_Size, Tank_Missle_TrailLength, tank_missle_splash_radius,
 					tank_missle_terminal_velocity, tank_missle_power); // spawn missle
 				if (eventLogging) { std::cout << "  Missle shot" << "\n"; }
 			}
 			else {
 
-				SpawnLaser(laser_pos.x, laser_pos.y, Tank_LASER_SPEED, ang, dam, team, { entity_index, unique_id }, { 4, .66 }); // spawn laser
+				spawn_laser(laser_pos.x, laser_pos.y, Tank_LASER_SPEED, ang, dam, team, { entity_index, unique_id }, { 4, .66 }); // spawn laser
 				if (eventLogging) { std::cout << "  Laser shot" << "\n"; }
 			}
 
@@ -2285,7 +2296,7 @@ void Entity::AI()
 
 			// ------- Particles Go Here ----------------
 			for (int i = 0; i < 8; i++) {
-				SpawnParticle(laser_pos, 4, .45, 2, 1, oppCol(col));
+				spawn_particle(laser_pos, 4, .45, 2, 1, opposite_color(col));
 			}
 
 			// --------- Sound Effects Go Here -----------
@@ -2302,17 +2313,17 @@ void Entity::AI()
 			std::cout << "	Entity Variables" << "\n";
 
 			if (ammo_target != nullptr) {
-				std::cout << "		Ammo Target ID:" << ammo_target->unique_id << "\n";
+				std::cout << "		Ammo Target uid:" << ammo_target->unique_id << "\n";
 			}
 			else {
-				std::cout << "		Ammo Target ID: <null>" << "\n";
+				std::cout << "		Ammo Target uid: <null>" << "\n";
 			}
 
 		}
 
 	}
 
-	if (ID == "fort")
+	if (entity_type == EntityType::fort)
 	{
 		// If enemy is unaligned with target or invalid
 		if (enemy_entity_index < EntityArr.size() && enemy_entity_index > -1) {
@@ -2363,15 +2374,15 @@ void Entity::AI()
 		if (eventLogging) {
 			std::cout << "\n";
 			std::cout << "Fort.AI(); GameTick: " << game_ticks << "\n";
-			std::cout << "  Fort ID: " << unique_id << "  Fort Pos: " << pos.x << "," << pos.y << "\n";
+			std::cout << "  Fort uid: " << unique_id << "  Fort Pos: " << pos.x << "," << pos.y << "\n";
 			std::cout << "  Fort Angles; ang = " << ang << "; targ_ang = " << targ_ang << "\n";
 			if (enemy != nullptr) {
-				std::cout << "  Enemy ID: " << enemy->unique_id << "; Enemy Pos: " << enemy->pos.x << "," << enemy->pos.y << "\n";
+				std::cout << "  Enemy uid: " << enemy->unique_id << "; Enemy Pos: " << enemy->pos.x << "," << enemy->pos.y << "\n";
 			}
 			std::cout << "  Healing Tanks Array: [";
-			for (int i = 0; i < HealTankArray.size(); i++) {
-				std::cout << std::to_string(HealTankArray[i]);
-				if (i < HealTankArray.size() - 1) {
+			for (int i = 0; i < heal_tank_array.size(); i++) {
+				std::cout << std::to_string(heal_tank_array[i]);
+				if (i < heal_tank_array.size() - 1) {
 					std::cout << ",";
 				}
 			}
@@ -2386,7 +2397,7 @@ void Entity::AI()
 		// Update Tank Healing Array
 
 		if (game_ticks % 30 == 0) {
-			HealTankArray.clear();
+			heal_tank_array.clear();
 		}
 
 
@@ -2405,19 +2416,19 @@ void Entity::AI()
 			if (fort_level == 0) { // If fort JUST leveled up
 				// Apply special fort properties
 				max_missle_cooldown = max_laser_cooldown * 33 / special_fort_misslecooldown_factor;		// Special Fort Missle Cooldown
-				max_hp = Fort_HP * special_fort_hitpoints_factor;										// Special Fort Hitpoints
-				hp = max_hp;																			// Heal Fort to max HP on upgrade
+				max_hitpoints = Fort_HP * special_fort_hitpoints_factor;										// Special Fort Hitpoints
+				hitpoints = max_hitpoints;																			// Heal Fort to max HP on upgrade
 				max_Tank_spawn_time = Fort_SPAWNTANK_TIME / special_fort_tankspawn_factor;				// Special Fort Tank Spawn Rate
 				range = Fort_RANGE * special_fort_range_factor;											// Special Fort Range
 				fort_level = 1;																			// Upgrade Fort Level
 
 				for (int i = 0; i < 15; i++) {
-					SpawnParticle(pos, 8, 2, 2, .5, col);
+					spawn_particle(pos, 8, 2, 2, .5, col);
 				}
 
 				sf::Vector2f temp_pos = pos;
 				if (GameScreenRect.contains(temp_pos)) {
-					SpawnFloatingText("Upgraded", temp_pos, colorArr[team], oppCol(colorArr[team]), 30, 3, Font_2, .33);
+					spawn_floating_text("Upgraded", temp_pos, colorArr[team], opposite_color(colorArr[team]), 30, 3, Font_2, .33);
 				}
 			}
 
@@ -2427,10 +2438,10 @@ void Entity::AI()
 		switch (fort_level) // Fort Level Upgrades (currently only two levels, 0 and 1)
 		{
 		case 1:
-			if (hp < max_hp) {
-				hp += max_hp * GameFPSRatio / ((100 / special_fort_healing_factor) * 60); // Special Fort Healing
+			if (hitpoints < max_hitpoints) {
+				hitpoints += max_hitpoints * GameFPSRatio / ((100 / special_fort_healing_factor) * 60); // Special Fort Healing
 			}
-			if (hp > max_hp) { hp = max_hp; }
+			if (hitpoints > max_hitpoints) { hitpoints = max_hitpoints; }
 
 			break;
 		default:
@@ -2441,7 +2452,7 @@ void Entity::AI()
 
 
 		// When the Fort is destroyed
-		if (hp <= 0) {
+		if (hitpoints <= 0) {
 			if (eventLogging) { std::cout << "  Fort Captured" << "\n"; }
 
 			// Change the team of the current Fort
@@ -2451,7 +2462,7 @@ void Entity::AI()
 				sf::Vector2f temp_pos = pos;
 				if (GameScreenRect.contains(temp_pos)) {
 					if (Tank_spawn_timer > 0) {
-						SpawnFloatingText("Captured", temp_pos, colorArr[newteam], oppCol(colorArr[newteam]), 20, 2, Font_2, .33);
+						spawn_floating_text("Captured", temp_pos, colorArr[newteam], opposite_color(colorArr[newteam]), 20, 2, Font_2, .33);
 					}
 				}
 				GameLogArr.push_back("{" + hexcolorArr[team] + "}[fort#" + std::to_string(unique_id) + "] converted to {" + hexcolorArr[newteam] + "}[fort#" + std::to_string(unique_id) + "]");
@@ -2459,8 +2470,8 @@ void Entity::AI()
 				// Update the team and color
 				team = newteam;
 				col = colorArr[newteam];
-				opp_col = oppCol(col);
-				entitySprite.setTexture(FortTextArr[team]);
+				opp_col = opposite_color(col);
+				entity_sprite.setTexture(FortTextArr[team]);
 
 				// Reset assimilation timer
 				Tank_spawn_timer = -fort_assimilation_ticks;
@@ -2473,8 +2484,8 @@ void Entity::AI()
 
 				// Reset all Fort Stats from special fort
 				max_missle_cooldown = max_laser_cooldown * 33 * fort_missle_cooldown_factor;
-				max_hp = Fort_HP;
-				hp = max_hp;
+				max_hitpoints = Fort_HP;
+				hitpoints = max_hitpoints;
 				max_Tank_spawn_time = Fort_SPAWNTANK_TIME;
 				range = Fort_RANGE;
 				special_fort = false;
@@ -2483,7 +2494,7 @@ void Entity::AI()
 
 				// Flash effect to indicate capture
 				for (int i = 0; i < 40; i++) {
-					SpawnParticle(pos, 15, 4, 2, .8, colorArr[newteam]);
+					spawn_particle(pos, 15, 4, 2, .8, colorArr[newteam]);
 				}
 
 				// Gift tanks if enabled
@@ -2491,7 +2502,7 @@ void Entity::AI()
 					for (int i = 0; i < 2; i++) {
 						float x = (rand() % 10) - 5 + pos.x;
 						float y = (rand() % 10) - 5 + pos.y;
-						SpawnTank({ x, y }, newteam);
+						spawn_tank({ x, y }, newteam);
 					}
 				}
 
@@ -2506,19 +2517,19 @@ void Entity::AI()
 			Forts_Destroyed[last_bullet_team] += 1;
 
 			// Reset health for the new team
-			hp = max_hp;
+			hitpoints = max_hitpoints;
 		}
 
 
-		if (hp <= max_hp * .5) {
-			float FACTOR = (.5 - (hp / max_hp)) * 2 * 5;
+		if (hitpoints <= max_hitpoints * .5) {
+			float FACTOR = (.5 - (hitpoints / max_hitpoints)) * 2 * 5;
 
 			if (rand() % 100 <= 10 * FACTOR) {
-				SpawnParticle(pos, 4, 1.5, 2, .5, oppCol(col));
+				spawn_particle(pos, 4, 1.5, 2, .5, opposite_color(col));
 			}
 			if (rand() % 100 <= 2 * FACTOR) {
 				for (int i = 0; i < 5; i++) {
-					SpawnParticle(pos, 3, 3, 1, .8, oppCol(col));
+					spawn_particle(pos, 3, 3, 1, .8, opposite_color(col));
 				}
 			}
 		}
@@ -2530,7 +2541,7 @@ void Entity::AI()
 		Tank_spawn_timer += GameFPSRatio;
 		if (Tank_spawn_timer >= max_Tank_spawn_time) {
 			if (eventLogging) { std::cout << "  Fort Spawns Tank" << "\n"; }
-			int tank_population = getTankPop(team);
+			int tank_population = get_tank_pop(team);
 			if (tank_population < Tank_MIN_POP + extra_population && FORTS_SPAWN_TANKS) {
 				x = (rand() % 10) - 5; y = (rand() % 10) - 5;
 				x += pos.x; y += pos.y;
@@ -2539,19 +2550,19 @@ void Entity::AI()
 
 				fort_tanks_spawned += 1;
 				for (int i = 0; i < 20; i++) {
-					SpawnParticle(pos, 7.5, 2.25, 2, 1 / 1.5, col);
+					spawn_particle(pos, 7.5, 2.25, 2, 1 / 1.5, col);
 				}
 
 				if (GameScreenRect.contains(pos)) {
 					tankcreated01.play();
 				}
-				SpawnTank({ x, y }, team);
+				spawn_tank({ x, y }, team);
 			}
 			else {
 				// Pop Cap is reached
 				Tank_spawn_timer = max_Tank_spawn_time;
 				if (rand() % 100 <= 10 * GameFPSRatio) {
-					SpawnParticle(pos, 5, .75, 2, 2, col);
+					spawn_particle(pos, 5, .75, 2, 2, col);
 				}
 			}
 		}
@@ -2647,10 +2658,10 @@ void Entity::AI()
 
 
 		// Move Gun
-		v_ang += a_ang * GameFPSRatio;
-		ang += v_ang * GameFPSRatio;
-		v_ang *= (float)pow(.9, GameFPSRatio);
-		a_ang = 0;
+		ang_vel += ang_acc * GameFPSRatio;
+		ang += ang_vel * GameFPSRatio;
+		ang_vel *= (float)pow(.9, GameFPSRatio);
+		ang_acc = 0;
 
 
 
@@ -2667,7 +2678,7 @@ void Entity::AI()
 			float dx, dy;
 
 			for (int i = 0; i < EntityArr.size(); i++) {
-				if (EntityArr[i].team != team && EntityArr[i].ID != "fort") {
+				if (EntityArr[i].team != team && EntityArr[i].entity_type != EntityType::fort) {
 					dx = EntityArr[i].pos.x - pos.x;
 					dy = EntityArr[i].pos.y - pos.y;
 					double dis = std::sqrt(dx * dx + dy * dy);
@@ -2680,7 +2691,7 @@ void Entity::AI()
 
 			if (found) {
 				random_unit = random_unit_arr[rand() % random_unit_arr.size()];
-				SpawnMissle(pos, fort_missle_velocity, ang, Fort_DAMAGE * fort_missle_damagefactor,
+				spawn_missle(pos, fort_missle_velocity, ang, Fort_DAMAGE * fort_missle_damagefactor,
 					fort_missle_projectile_no, team, { entity_index, unique_id }, {random_unit->entity_index, random_unit->unique_id}, Fort_Missle_Size,
 					Fort_Missle_TrailLength, fort_missle_splash_radius, fort_missle_terminal_velocity,
 					fort_missle_power);
@@ -2688,7 +2699,7 @@ void Entity::AI()
 				missle_cooldown = max_missle_cooldown;
 			}
 			else {
-				SpawnMissle(pos, fort_missle_velocity, ang, Fort_DAMAGE * fort_missle_damagefactor,
+				spawn_missle(pos, fort_missle_velocity, ang, Fort_DAMAGE * fort_missle_damagefactor,
 					fort_missle_projectile_no, team, { entity_index, unique_id }, {enemy_entity_index, enemy_unique_id}, Fort_Missle_Size,
 					Fort_Missle_TrailLength, fort_missle_splash_radius, fort_missle_terminal_velocity,
 					fort_missle_power);
@@ -2711,14 +2722,14 @@ void Entity::AI()
 			x = gun_barrel[0] * cos(ang * M_PI / 180) + pos.x;
 			y = gun_barrel[0] * sin(ang * M_PI / 180) + pos.y;
 
-			SpawnLaser(x, y, Fort_LASER_SPEED, ang, dam, team, { entity_index, unique_id }, { 2, .75 });
+			spawn_laser(x, y, Fort_LASER_SPEED, ang, dam, team, { entity_index, unique_id }, { 2, .75 });
 
 			laser_cooldown = max_laser_cooldown;
 
 
 			// Draw Bullet Particles
 			for (int i = 0; i < 5; i++) {
-				SpawnParticle({ x, y }, 4, 3, 2, .25, oppCol(col));
+				spawn_particle({ x, y }, 4, 3, 2, .25, opposite_color(col));
 			}
 			//--- Sound Effects ----//
 			if (GameScreenRect.contains(pos)) {
@@ -2731,7 +2742,7 @@ void Entity::AI()
 }
 void Entity::move()
 {
-	if (ID == "tank") {
+	if (entity_type == EntityType::tank) {
 		if (eventLogging) { std::cout << "Tank.move(); GameTick: " << game_ticks << "\n"; }
 
 		lock_target_timer += GameFPSRatio;
@@ -2754,10 +2765,10 @@ void Entity::move()
 
 
 		// Tank Rotation
-		v_ang += a_ang * GameFPSRatio;
-		ang += v_ang * GameFPSRatio;
-		v_ang *= (float)pow(.92, GameFPSRatio);
-		a_ang = 0;
+		ang_vel += ang_acc * GameFPSRatio;
+		ang += ang_vel * GameFPSRatio;
+		ang_vel *= (float)pow(.92, GameFPSRatio);
+		ang_acc = 0;
 
 		//last_pos += pos;
 
@@ -2773,40 +2784,40 @@ void Entity::move()
 
 	}
 
-	if (ID == "fort") {
+	if (entity_type == EntityType::fort) {
 
 	}
 }
 void Entity::draw()
 {
-	if (ID == "tank") {
+	if (entity_type == EntityType::tank) {
 		if (eventLogging) { std::cout << "Tank.draw()" << "\n"; }
 
 
 
 		// Spawn Particles for Damaged tanks
 		opp_col.a = 255;
-		if ((ammo_supply <= 0 || hp <= max_hp * PanicHealthPerc) && NEED_SUPPLIES) {
+		if ((ammo_supply <= 0 || hitpoints <= max_hitpoints * PanicHealthPerc) && NEED_SUPPLIES) {
 			if (rand() % 100 <= 7 * GameFPSRatio) {
-				SpawnParticle(pos, 2.5, .5, 2, 2, opp_col);
+				spawn_particle(pos, 2.5, .5, 2, 2, opp_col);
 			}
 			if (NEED_SUPPLIES)
 				no_ammo = true;
 		}
 
-		float ratio = hp / max_hp;
+		float ratio = hitpoints / max_hitpoints;
 
 		// Spawn particles for damaged tanks II
-		if ((rand() % 100 <= 25 * (1 - ratio)) && ratio < .67) { for (int i = 0; i < rand() % 4; i++) { SpawnParticle(pos, 2, 2, 1, .8, opp_col); } }
+		if ((rand() % 100 <= 25 * (1 - ratio)) && ratio < .67) { for (int i = 0; i < rand() % 4; i++) { spawn_particle(pos, 2, 2, 1, .8, opp_col); } }
 
 		float G_pos[2] = { pos.x - Camera_Pos[0],pos.y - Camera_Pos[1] };
 		col;
 
 		col.a = (sf::Uint8)(32 * (ammo_supply / max_ammo_supply));
 		opp_col.a = 32;
-		if (hp < 0) { col.a = 0; }
+		if (hitpoints < 0) { col.a = 0; }
 
-		//t_col = oppCol(t_col);
+		//t_col = opposite_color(t_col);
 		//t_col.a = 64;
 
 
@@ -2815,47 +2826,47 @@ void Entity::draw()
 		float tank_circle_radius = TransRangeTank * Tank_RANGE;
 
 		// Draw Tank Sprite and LOS
-		drawFilledCircle(window, { G_pos[0], G_pos[1] }, tank_circle_radius * .75, col);
+		draw_filled_circle(window, { G_pos[0], G_pos[1] }, tank_circle_radius * .75, col);
 
-		entitySprite.setOrigin((float)texWidth / 2, (float)texHeight / 2);
-		entitySprite.setPosition(G_pos[0], G_pos[1]);
-		entitySprite.setRotation(ang + 90);
+		entity_sprite.setOrigin((float)texWidth / 2, (float)texHeight / 2);
+		entity_sprite.setPosition(G_pos[0], G_pos[1]);
+		entity_sprite.setRotation(ang + 90);
 
-		window.draw(entitySprite);
+		window.draw(entity_sprite);
 
 		// Draw Health bar/circle
 		tank_health_arc_angle += GameFPSRatio * 2;
 		float _ang = tank_health_arc_angle;
-		drawArc(window, { G_pos[0], G_pos[1] }, tank_circle_radius * .8, opp_col, 3, _ang, _ang + hp * 360 / max_hp, 20);
+		draw_arc(window, { G_pos[0], G_pos[1] }, tank_circle_radius * .8, opp_col, 3, _ang, _ang + hitpoints * 360 / max_hitpoints, 20);
 
 		// Draw Circle for Special Tanks
 		if (level != 0) {
-			drawCircle(window, { G_pos[0], G_pos[1] }, tank_circle_radius, col, 3);
+			draw_circle(window, { G_pos[0], G_pos[1] }, tank_circle_radius, col, 3);
 			if (rand() % 100 <= 8 * GameFPSRatio) {
-				SpawnParticle(pos, 3.5, .4, 2, 2.25, col);
+				spawn_particle(pos, 3.5, .4, 2, 2.25, col);
 			}
 		}
 
 		if (DEBUG_FEATURES) {
 			col.a = 64;
-			drawLine(window, { G_pos[0], G_pos[1] }, { target_pos.x - Camera_Pos[0], target_pos.y - Camera_Pos[1] }, col);
+			draw_line(window, { G_pos[0], G_pos[1] }, { target_pos.x - Camera_Pos[0], target_pos.y - Camera_Pos[1] }, col);
 
 			sf::FloatRect n_rect = collisionRect();
 			n_rect.left -= Camera_Pos[0];
 			n_rect.top -= Camera_Pos[1];
 
-			col.a = 255.f * (hp / max_hp);
-			drawRect(window, n_rect, col, 1);
+			col.a = 255.f * (hitpoints / max_hitpoints);
+			draw_rect(window, n_rect, col, 1);
 
-			renderText(window, { G_pos[0] + 10, G_pos[1] - 15 }, std::to_string(unique_id), Font_2, 15, sf::Color::White);
-			renderText(window, { G_pos[0] + 10, G_pos[1] + 5 }, "Kills: " + std::to_string(kill_count), Font_2, 15, sf::Color::White);
+			render_text(window, { G_pos[0] + 10, G_pos[1] - 15 }, std::to_string(unique_id), Font_2, 15, sf::Color::White);
+			render_text(window, { G_pos[0] + 10, G_pos[1] + 5 }, "Kills: " + std::to_string(kill_count), Font_2, 15, sf::Color::White);
 
 		}
 
 		if (eventLogging) { std::cout << "  Tank Drawn." << "\n"; }
 	}
 
-	if (ID == "fort")
+	if (entity_type == EntityType::fort)
 	{
 		if (eventLogging) { std::cout << "Fort.draw()" << "\n"; }
 
@@ -2867,7 +2878,7 @@ void Entity::draw()
 
 			if (rand() % 100 <= (14 * GameFPSRatio * ratio) + 1) {
 				for (int i = 0; i < 2; i++) {
-					SpawnParticle(pos, 3, .5, 2, 1 + (3 * ratio), opp_col);
+					spawn_particle(pos, 3, .5, 2, 1 + (3 * ratio), opp_col);
 				}
 			}
 		}
@@ -2901,15 +2912,15 @@ void Entity::draw()
 						(sf::Uint8)(col.g * _ratio + opp_col.g * ratio),
 						(sf::Uint8)(col.b * _ratio + opp_col.b * ratio),
 						col.a };
-			drawFilledCircle(window, { x0, y0 }, Fort_RANGE * TransRangeFort * .8, temp_col);
-			if (fort_level != 0) { drawCircle(window, { x0, y0 }, Fort_RANGE * TransRangeFort * 1, col, 4); }
+			draw_filled_circle(window, { x0, y0 }, Fort_RANGE * TransRangeFort * .8, temp_col);
+			if (fort_level != 0) { draw_circle(window, { x0, y0 }, Fort_RANGE * TransRangeFort * 1, col, 4); }
 		}
 
 		// Draw Health bar
 		col.a *= 1.5;  // Health bar is slightly more opaque
 		fort_health_arc_angle += GameFPSRatio * .33;
 		float _ang = fort_health_arc_angle;
-		drawArc(window, { x0, y0 }, Fort_RANGE * TransRangeFort * .88 - 1, col, 5, _ang, _ang + hp * 360 / max_hp, 25);
+		draw_arc(window, { x0, y0 }, Fort_RANGE * TransRangeFort * .88 - 1, col, 5, _ang, _ang + hitpoints * 360 / max_hitpoints, 25);
 		col.a /= 1.5; // Reset col.a to original value
 		// If fort is assimilating
 		if (Tank_spawn_timer < 0) {
@@ -2919,7 +2930,7 @@ void Entity::draw()
 
 			fort_assimilation_arc_angle -= GameFPSRatio * .5;
 			_ang = fort_assimilation_arc_angle;
-			drawArc(window, { x0,y0 }, Fort_RANGE * TransRangeFort * .75, opp_col, 4, _ang, _ang + 360 * n_ratio, 25);
+			draw_arc(window, { x0,y0 }, Fort_RANGE * TransRangeFort * .75, opp_col, 4, _ang, _ang + 360 * n_ratio, 25);
 		}
 
 		// Drawing Fort Gun
@@ -2935,7 +2946,7 @@ void Entity::draw()
 			x1 -= Camera_Pos[0]; y1 -= Camera_Pos[1];
 
 			opp_col.a = 255;
-			drawThickLine(window, { x0, y0 }, { x1, y1 }, gun_barrel[1], opp_col);
+			draw_thick_line(window, { x0, y0 }, { x1, y1 }, gun_barrel[1], opp_col);
 		}
 
 		float dis;
@@ -2952,12 +2963,12 @@ void Entity::draw()
 
 			opp_col.a = (sf::Uint8)(128 * flicker_timer / max_flicker_time);
 		
-			drawThickLine(window, { x0, y0 }, { x2, y2 }, 4, opp_col);
+			draw_thick_line(window, { x0, y0 }, { x2, y2 }, 4, opp_col);
 		
 
-			if (HealTankArray.size() >= maxTankHealArray) {
+			if (heal_tank_array.size() >= maxTankHealArray) {
 				col.a = 64;
-				drawCircle(window, { x0, y0 }, 50, col, 5);
+				draw_circle(window, { x0, y0 }, 50, col, 5);
 			}
 		}
 
@@ -2966,15 +2977,15 @@ void Entity::draw()
 
 		// Draw Fort Body
 		/*col.a = 255;
-		drawFilledRect(window, tmp_rect, col);
-		sf::Color dim_col = dimCol(col, 50);
-		drawRect(window, tmp_rect, dim_col, 1);*/
+		draw_filled_rect(window, tmp_rect, col);
+		sf::Color dim_col = dim_color(col, 50);
+		draw_rect(window, tmp_rect, dim_col, 1);*/
 
-		entitySprite.setOrigin((float)texWidth / 2, (float)texHeight / 2);
-		entitySprite.setPosition(x0, y0);
-		if (Tank_spawn_timer < 0) { fort_ang += fort_v_ang; }
-		entitySprite.setRotation(ang);
-		window.draw(entitySprite);
+		entity_sprite.setOrigin((float)texWidth / 2, (float)texHeight / 2);
+		entity_sprite.setPosition(x0, y0);
+		if (Tank_spawn_timer < 0) { fort_ang += fort_ang_vel; }
+		entity_sprite.setRotation(ang);
+		window.draw(entity_sprite);
 
 
 
@@ -2999,7 +3010,7 @@ void Entity::draw()
 			col.a = 128;
 			opp_col.a = 16;
 			if (ratio < 0) { ratio = 0; }
-			drawFilledCircle(window, { x0, y0 }, Tank_RANGE * TransRangeFort * ratio, opp_col);
+			draw_filled_circle(window, { x0, y0 }, Tank_RANGE * TransRangeFort * ratio, opp_col);
 			col.a = 255; opp_col.a = 255;
 		}
 
@@ -3106,7 +3117,7 @@ public:
 			x1 -= Camera_Pos[0]; y1 -= Camera_Pos[1];
 			x2 -= Camera_Pos[0]; y2 -= Camera_Pos[1];
 
-			drawLine(window, { x1, y1 }, { x2, y2 }, col);
+			draw_line(window, { x1, y1 }, { x2, y2 }, col);
 			break;
 		case 2:
 			myRect.setPosition({ pos.x - (size / 2) , pos.y - (size / 2) });
@@ -3129,7 +3140,7 @@ public:
 	int grid_x, grid_y;
 	sf::Color col, opp_col;
 	int team;
-	int FortID;
+	int fort_unique_id;
 	//sf::FloatRect rect;
 	float radius;
 	Entity* fort;
@@ -3153,7 +3164,7 @@ public:
 
 	Tile(sf::Vector2f sp_pos, int gx, int gy) :
 		col({ 0, 0, 0, 0 }), flash_state(false), flash_timer(0), max_flash_time(60),
-		flash_vel(1), flash_intensity(255), FortID(-1), pos(sp_pos), team(-1),
+		flash_vel(1), flash_intensity(255), fort_unique_id(-1), pos(sp_pos), team(-1),
 		fort(nullptr), radius(0), grid_x(gx), grid_y(gy), border_tile(false), soft_border_tile(false), neighbors{},
 		flicker_timer(0), flicker_timer_vel(1), tank_deaths(0), fort_is_assimilating(false), fort_is_special(false),
 		distance_from_fort(0), flicker_timer_acc((float)(1 + std::sqrt(rand() % 10)))
@@ -3185,16 +3196,16 @@ public:
 		distance_from_fort = -1;
 		fort = nullptr;
 		for (Entity& entity : EntityArr) {
-			if (entity.ID == "fort") {
+			if (entity.entity_type == EntityType::fort) {
 				dx = pos.x - entity.pos.x;
 				dy = pos.y - entity.pos.y;
 
 				dis = std::sqrt(dx * dx + dy * dy);
 
-				if (dis / entity.getTerritoryPower() < smallest_dis && dis / entity.getTerritoryPower() < entity.range * 2) {
-					smallest_dis = dis / entity.getTerritoryPower();
+				if (dis / entity.get_fort_territory_power() < smallest_dis && dis / entity.get_fort_territory_power() < entity.range * 2) {
+					smallest_dis = dis / entity.get_fort_territory_power();
 					fort = &entity;
-					FortID = entity.unique_id;
+					fort_unique_id = entity.unique_id;
 					found = true;
 					distance_from_fort = dis;
 				}
@@ -3203,7 +3214,7 @@ public:
 		if (found) {
 			team = fort->team;
 			col = colorArr[team];
-			opp_col = oppCol(col);
+			opp_col = opposite_color(col);
 			col.a = 64;
 			fort_is_assimilating = (fort->Tank_spawn_timer < 0);
 			if (smallest_dis > fort->range) {
@@ -3241,7 +3252,7 @@ public:
 					(fort_is_special && distance_from_fort > Fort_RANGE * 5 * TransRangeFort)) {		// special fort
 					// look for neighboring tiles with different fort
 					for (Tile* tile : neighbors) {
-						if (tile->FortID != FortID && tile->team == team) { soft_border_tile = true; break; }
+						if (tile->fort_unique_id != fort_unique_id && tile->team == team) { soft_border_tile = true; break; }
 					}
 				}
 			}
@@ -3256,7 +3267,7 @@ public:
 
 
 		float gx = pos.x - Camera_Pos[0]; float gy = pos.y - Camera_Pos[1];
-		opp_col = oppCol(col);
+		opp_col = opposite_color(col);
 
 
 		circle.setPosition({ gx, gy });
@@ -3311,15 +3322,15 @@ public:
 			col.a *= 1.5;
 
 			if (circle.getGlobalBounds().contains(Mouse_Pos)) {	// Mouse is over tile
-				renderText(window, { gx, gy }, std::to_string(grid_x) + "," + std::to_string(grid_y), Font_2, 20, col, 1, { 0,0,0 });
-				renderText(window, { gx, gy + 20 }, "Fort ID: " + std::to_string(FortID), Font_2, 16, col);
+				render_text(window, { gx, gy }, std::to_string(grid_x) + "," + std::to_string(grid_y), Font_2, 20, col, 1, { 0,0,0 });
+				render_text(window, { gx, gy + 20 }, "Fort uid: " + std::to_string(fort_unique_id), Font_2, 16, col);
 			}
 			// Below code to draw lines to neighbors, enabled only for testing
 			if (false) {
 				for (int i = 0; i < neighbors.size(); i++) {
 					sf::Vector2f n_pos = neighbors[i]->pos;
 					n_pos.x -= Camera_Pos[0]; n_pos.y -= Camera_Pos[1];
-					drawThickLine(window, { gx, gy }, n_pos, 3, opp_col);
+					draw_thick_line(window, { gx, gy }, n_pos, 3, opp_col);
 				}
 			}
 
@@ -3365,12 +3376,12 @@ public:
 		{
 		case 0:
 			for (int i = 0; i < 3; i++) {
-				SpawnParticle(pos, 4, 1.25, 2, 2, t_col);
+				spawn_particle(pos, 4, 1.25, 2, 2, t_col);
 			}
 			break;
 		case 1:
 			for (int i = 0; i < 2; i++) {
-				SpawnParticle(pos, 3, 1, 2, 1.5, t_col);
+				spawn_particle(pos, 3, 1, 2, 1.5, t_col);
 			}
 			break;
 		default:
@@ -3432,7 +3443,7 @@ public:
 
 		if (shadow) {
 			TextObj.move({ 2,2 });
-			sf::Color t_col = dimCol(col, 25);
+			sf::Color t_col = dim_color(col, 25);
 			t_col.a = col.a;
 
 			TextObj.setFillColor(t_col);
@@ -3483,7 +3494,7 @@ public:
 		ia = true;
 		sprite.setTexture(DeadTankTextArr[team][type]);
 		sprite.setOrigin(sprite.getLocalBounds().width / 2, sprite.getLocalBounds().height / 2);
-		col = oppCol(colorArr[team]);
+		col = opposite_color(colorArr[team]);
 	}
 	void AI()
 	{
@@ -3506,8 +3517,8 @@ public:
 
 		ratio = life / DeadTankLife;
 
-		if (rand() % 1000 <= 50 * GameFPSRatio * ratio) { SpawnParticle(pos, 3, 1, 2, 1, col); }
-		if (rand() % 1000 <= 25 * GameFPSRatio * ratio) { SpawnParticle(pos, 3, 1, 1, 2, col); }
+		if (rand() % 1000 <= 50 * GameFPSRatio * ratio) { spawn_particle(pos, 3, 1, 2, 1, col); }
+		if (rand() % 1000 <= 25 * GameFPSRatio * ratio) { spawn_particle(pos, 3, 1, 1, 2, col); }
 
 	}
 };
@@ -3547,8 +3558,8 @@ public:
 	{
 		sf::Color n_colour = colour;
 		n_colour.a = 85;
-		drawFilledRect(window, rect, n_colour);
-		drawRect(window, rect, colour, 2);
+		draw_filled_rect(window, rect, n_colour);
+		draw_rect(window, rect, colour, 2);
 
 		window.draw(TextObj);
 	}
@@ -3560,14 +3571,14 @@ public:
 			quitGame = true;
 		}
 		else if (action == 1) {
-			DemoGame();
+			generate_random_map();
 		}
 		else if (action == numberOfTeams + 2) { // Delete Entities
 			GameTextArr.clear();
 			EntityArr.clear();
 			DeadTankArr.clear();
 			GameLogArr.clear();
-			SpawnGameText("ENTITIES DELETED", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 30, 5, 2, true);
+			spawn_game_text("ENTITIES DELETED", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 30, 5, 2, true);
 		}
 		else if (action == numberOfTeams + 3) {
 			summonTeam = -1;
@@ -3586,7 +3597,7 @@ public:
 			}
 			victimTeam = index;
 			std::string text = gangUp ? "Game Up: ON" : "Game Up: OFF";
-			SpawnGameText(text, { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 30, 1, 2, false);
+			spawn_game_text(text, { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 30, 1, 2, false);
 		}
 		else {
 			if (action > 1 && action < numberOfTeams + 2) {
@@ -3629,7 +3640,7 @@ public:
 		col.a = a;
 
 
-		renderText(surface, { pos.x - Camera_Pos[0], pos.y - Camera_Pos[1] }, text, font, font_size, col, 1, { out_col.r,out_col.g,out_col.b,col.a });
+		render_text(surface, { pos.x - Camera_Pos[0], pos.y - Camera_Pos[1] }, text, font, font_size, col, 1, { out_col.r,out_col.g,out_col.b,col.a });
 		pos.y -= GameFPSRatio * vel; // Floating up effect
 	}
 	~FloatingText() {
@@ -3679,7 +3690,7 @@ int main()
 	std::cout << "Number of Teams: " << numberOfTeams << "\n";
 	for (auto& arr : _jData_Teams["colors"]) {
 		colorArr.push_back({ arr[0], arr[1], arr[2] });
-		hexcolorArr.push_back(colorToHex({ arr[0], arr[1], arr[2] }));
+		hexcolorArr.push_back(rgb_to_hex({ arr[0], arr[1], arr[2] }));
 	}
 
 	for (int i = 0; i < numberOfTeams; i++) {
@@ -3750,14 +3761,14 @@ int main()
 
 
 	for (int i = 0; i < numberOfTeams; i++) {
-		CompTankImgArr.push_back(transformImgCol(TankImg, colorArr[i], 0));
+		CompTankImgArr.push_back(transform_image_color(TankImg, colorArr[i], 0));
 		CompTankTextArr[i].loadFromImage(CompTankImgArr[i]);
 
 
-		FortImgArr[i] = transformImgCol(FortImg, colorArr[i], 1);
+		FortImgArr[i] = transform_image_color(FortImg, colorArr[i], 1);
 		FortTextArr[i].loadFromImage(FortImgArr[i]);
 
-		DeadTankImgArr.push_back({ transformImgCol(DeadTankImg[0], colorArr[i], 0), transformImgCol(DeadTankImg[1], colorArr[i], 0) });
+		DeadTankImgArr.push_back({ transform_image_color(DeadTankImg[0], colorArr[i], 0), transform_image_color(DeadTankImg[1], colorArr[i], 0) });
 		DeadTankImgArr[i][0].createMaskFromColor({ 0,128,128 });
 		DeadTankImgArr[i][1].createMaskFromColor({ 0,128,128 });
 		DeadTankTextArr[i][0].loadFromImage(DeadTankImgArr[i][0]);
@@ -3789,16 +3800,16 @@ int main()
 	StageColour = { 0,0,0 };
 	LastFPS = FPS;
 	window.setFramerateLimit(FPS);
-	InitTiles();
+	init_tiles();
 
 	// -----------  G A M E   L O O P  ----------------------------------------------------------------------------------------
 	sf::Clock  clock, FPSClock;
 	int frames = 0; int frames2 = 0;
 	GameFPSRatio = 1;
 
-	SpawnGameText("GAME STARTED", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 30, 10, 2, true);
+	spawn_game_text("GAME STARTED", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 30, 10, 2, true);
 
-	loadGameButtons();
+	load_game_buttons();
 
 	bool max_pop_reached = false;
 	bool last_man_standing = false;
@@ -3812,7 +3823,7 @@ int main()
 		//if (game_ticks > 1'000'000'000) { quitGame = true; }
 
 		if (game_ticks % 25 == 0) {
-			updateStats();
+			update_stats();
 		}
 
 
@@ -3820,7 +3831,7 @@ int main()
 		if (game_ticks % 60 == 0 && autoplay_time == -1 && autoplay) {
 			last_man_standing = false; teams_left = 0;
 			for (int i = 0; i < numberOfTeams; i++) {
-				if (getFortPop(i) > 0) {
+				if (get_fort_pop(i) > 0) {
 					teams_left += 1;
 				}
 			}
@@ -3835,8 +3846,8 @@ int main()
 		}
 
 		if (autoplay && game_ticks == autoplay_time) {
-			saveJSONData();
-			DemoGame();
+			save_json_data();
+			generate_random_map();
 			autoplay_time = -1;
 		}
 
@@ -3844,7 +3855,7 @@ int main()
 		if (game_ticks % 20 == 0 && !max_pop_reached) {
 			int teams_maxpop = 0;
 			for (int i = 0; i < numberOfTeams; i++) {
-				if (getTankPop(i) >= extra_population + Tank_MIN_POP) {
+				if (get_tank_pop(i) >= extra_population + Tank_MIN_POP) {
 					teams_maxpop += 1;
 				}
 			}
@@ -3864,36 +3875,36 @@ int main()
 
 
 
-		handleEvents(window);
-		keyboardInputs();
+		handle_events(window);
+		check_keyboard_inputs();
 
 		window.clear();
 		if (eventLogging) { std::cout << "\n"; std::cout << "//---- Frame Begins ----//" << "\n"; }
 		// Render Game
 		GameScreenRect = { Camera_Pos[0] - 25, Camera_Pos[1] - 25, SCREEN_WIDTH + 50, SCREEN_HEIGHT + 50 };
-		drawFilledRect(window, { -Camera_Pos[0], -Camera_Pos[1], GAME_MAP_WIDTH, GAME_MAP_HEIGHT }, StageColour);
-		if (draw_Tiles) { DrawTiles(); }
-		RenderDeadTanks(); if (eventLogging) { std::cout << "\n"; std::cout << "/Dead Tanks Rendered/" << "\n"; }
-		RenderEntities();  if (eventLogging) { std::cout << "\n"; std::cout << "/Entities Rendered/" << "\n"; }
-		RenderLasers();    if (eventLogging) { std::cout << "\n"; std::cout << "/Lasers Rendered/" << "\n"; }
-		RenderMissles();   if (eventLogging) { std::cout << "\n"; std::cout << "/Missles Rendered/" << "\n"; }
+		draw_filled_rect(window, { -Camera_Pos[0], -Camera_Pos[1], GAME_MAP_WIDTH, GAME_MAP_HEIGHT }, StageColour);
+		if (draw_Tiles) { draw_tiles(); }
+		render_dead_tanks(); if (eventLogging) { std::cout << "\n"; std::cout << "/Dead Tanks Rendered/" << "\n"; }
+		render_entities();  if (eventLogging) { std::cout << "\n"; std::cout << "/Entities Rendered/" << "\n"; }
+		render_lasers();    if (eventLogging) { std::cout << "\n"; std::cout << "/Lasers Rendered/" << "\n"; }
+		render_missles();   if (eventLogging) { std::cout << "\n"; std::cout << "/Missles Rendered/" << "\n"; }
 		if (!draw_particles) { ParticleArr.clear(); }
-		RenderParticles(); if (eventLogging) { std::cout << "\n"; std::cout << "/Particles Rendered/" << "\n"; }
-		RenderFloatingTexts(); if (eventLogging) { std::cout << "\n"; std::cout << "/Floating Texts Rendered/" << "\n"; }
-		if (draw_UI) { DrawUI(window);    if (eventLogging) { std::cout << "\n"; std::cout << "/UI Rendered/" << "\n"; } }
-		if (draw_minimap && game_ticks) { RenderMinimap(); if (eventLogging) { std::cout << "\n"; std::cout << "/Minimap Rendered/" << "\n"; } }
-		updateWind();
-		if (draw_Tiles && game_ticks % 45 == 0) { UpdateTiles(); }
+		render_particles(); if (eventLogging) { std::cout << "\n"; std::cout << "/Particles Rendered/" << "\n"; }
+		render_floating_texts(); if (eventLogging) { std::cout << "\n"; std::cout << "/Floating Texts Rendered/" << "\n"; }
+		if (draw_UI) { draw_ui(window);    if (eventLogging) { std::cout << "\n"; std::cout << "/UI Rendered/" << "\n"; } }
+		if (draw_minimap && game_ticks) { render_minimap(); if (eventLogging) { std::cout << "\n"; std::cout << "/Minimap Rendered/" << "\n"; } }
+		update_wind();
+		if (draw_Tiles && game_ticks % 45 == 0) { update_tiles(); }
 
 
 
 
 		if (autoplay) {
 			if (autoplay_time != -1) {
-				renderText(window, { SCREEN_WIDTH / 2, 20 }, "Autoplay in: " + std::to_string((autoplay_time - game_ticks) / 60) + " seconds", Font_1, 20, { 255,255,255 }, 1);
+				render_text(window, { SCREEN_WIDTH / 2, 20 }, "Autoplay in: " + std::to_string((autoplay_time - game_ticks) / 60) + " seconds", Font_1, 20, { 255,255,255 }, 1);
 			}
 			else {
-				renderText(window, { SCREEN_WIDTH / 2, 20 }, "Autoplay Enabled", Font_1, 20, { 255,255,255 }, 1);
+				render_text(window, { SCREEN_WIDTH / 2, 20 }, "Autoplay Enabled", Font_1, 20, { 255,255,255 }, 1);
 			}
 		}
 
@@ -3904,7 +3915,7 @@ int main()
 			std::vector<std::array<float, 2>> temp_stats;
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Tank Population
-				pops.push_back(getTankPop(i));
+				pops.push_back(get_tank_pop(i));
 			}
 			TankPopArr.push_back(pops);
 			pops.clear();
@@ -3912,14 +3923,14 @@ int main()
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Fort Population
-				pops.push_back(getFortPop(i));
+				pops.push_back(get_fort_pop(i));
 			}
 			FortPopArr.push_back(pops);
 			pops.clear();
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Captured Fort Population
-				pops.push_back(getFortPop(i, true));
+				pops.push_back(get_fort_pop(i, true));
 			}
 			CapturedFortPopArr.push_back(pops);
 			pops.clear();
@@ -3939,8 +3950,8 @@ int main()
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Captured Fort Ratio
-				if (getFortPop(i) != 0) {// prevent divide by zero error
-					f_pops.push_back((float)getFortPop(i, true) / (float)getFortPop(i));
+				if (get_fort_pop(i) != 0) {// prevent divide by zero error
+					f_pops.push_back((float)get_fort_pop(i, true) / (float)get_fort_pop(i));
 				}
 				else {
 					f_pops.push_back(0);
@@ -3952,7 +3963,7 @@ int main()
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Special Tank Population
-				pops.push_back(getSpecialTankPop(i));
+				pops.push_back(get_special_tank_pop(i));
 			}
 			SpecialTankPopArr.push_back(pops);
 			pops.clear();
@@ -3960,7 +3971,7 @@ int main()
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Special Tank Ratio
-				f_pops.push_back((float)getSpecialTankPop(i) / (float)getTankPop(i));
+				f_pops.push_back((float)get_special_tank_pop(i) / (float)get_tank_pop(i));
 			}
 			SpecialTankRatioArr.push_back(f_pops);
 			f_pops.clear();
@@ -3968,7 +3979,7 @@ int main()
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Special Fort Population
-				pops.push_back(getSpecialFortPop(i));
+				pops.push_back(get_special_fort_pop(i));
 			}
 			SpecialFortPopArr.push_back(pops);
 			pops.clear();
@@ -3976,7 +3987,7 @@ int main()
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Special Fort Ratio
-				f_pops.push_back((float)getSpecialFortPop(i) / (float)getFortPop(i));
+				f_pops.push_back((float)get_special_fort_pop(i) / (float)get_fort_pop(i));
 			}
 			SpecialFortRatioArr.push_back(f_pops);
 			f_pops.clear();
@@ -3999,7 +4010,7 @@ int main()
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Average Tank Age
-				pops.push_back(getAverageTankAge(i));
+				pops.push_back(get_average_tank_age(i));
 			}
 			AverageTankAgeArr.push_back(pops);
 			pops.clear();
@@ -4007,13 +4018,13 @@ int main()
 
 
 			for (int i = 0; i < numberOfTeams; i++) {	// Update Tile number
-				pops.push_back(getTerritory(i));
+				pops.push_back(get_team_territory(i));
 			}
 			TeamTerritoryArr.push_back(pops);
 			pops.clear();
 
 			for (int i = 0; i < EntityArr.size(); i++) {
-				if (EntityArr[i].ID == "tank" && EntityArr[i].ia) {
+				if (EntityArr[i].entity_type == EntityType::tank && EntityArr[i].ia) {
 					temp_stats.push_back({ (float)EntityArr[i].team, (float)EntityArr[i].age });
 				}
 			}
@@ -4021,7 +4032,7 @@ int main()
 			temp_stats.clear();
 
 			for (int i = 0; i < EntityArr.size(); i++) {
-				if (EntityArr[i].ID == "tank" && EntityArr[i].ia) {
+				if (EntityArr[i].entity_type == EntityType::tank && EntityArr[i].ia) {
 					temp_stats.push_back({ (float)EntityArr[i].team, (float)EntityArr[i].kill_count });
 				}
 			}
@@ -4034,12 +4045,12 @@ int main()
 		if (game_ticks % (60 * 30) == 0 && false) {
 			int teams_remaining = 0;
 			for (int i = 0; i < numberOfTeams; i++) {
-				if (getFortPop(i) > 0) {
+				if (get_fort_pop(i) > 0) {
 					teams_remaining += 1;
 					if (teams_remaining > 1) { break; }
 				}
 			}
-			if (teams_remaining == 1) { DemoGame(rand() % 2); }
+			if (teams_remaining == 1) { generate_random_map(rand() % 2); }
 		}
 
 		// End Render Game
@@ -4048,7 +4059,7 @@ int main()
 
 		// Calcilate FPS
 		if (clock.getElapsedTime().asSeconds() >= 1) {
-			updateStageColour();
+			update_stage_color();
 			LastFPS = frames; // Update FPS
 			frames = 0; clock.restart();
 		}
@@ -4090,11 +4101,11 @@ int main()
 
 
 
-sf::Image transformImgCol(sf::Image img, sf::Color tcol, int mode) {
+sf::Image transform_image_color(sf::Image img, sf::Color tcol, int mode) {
 	sf::Image newImg;
 	newImg.create(img.getSize().x, img.getSize().y, sf::Color::Transparent);
 	sf::Color col, pixcol;
-	sf::Color opp_col = oppCol(tcol);
+	sf::Color opp_col = opposite_color(tcol);
 	if (mode == 0) {
 		newImg.createMaskFromColor(sf::Color(0, 128, 128));
 
@@ -4154,7 +4165,7 @@ sf::Image transformImgCol(sf::Image img, sf::Color tcol, int mode) {
 	return newImg;
 }
 
-void renderText(sf::RenderWindow& surface, const sf::Vector2f& pos, const std::string& Text, const sf::Font& font, int size, const sf::Color& fill_col, int outline_thickness, const sf::Color& outline_col, bool centered)
+void render_text(sf::RenderWindow& surface, const sf::Vector2f& pos, const std::string& Text, const sf::Font& font, int size, const sf::Color& fill_col, int outline_thickness, const sf::Color& outline_col, bool centered)
 {
 	static sf::Text TextSprite;
 	static std::string cachedText;
@@ -4188,28 +4199,28 @@ void renderText(sf::RenderWindow& surface, const sf::Vector2f& pos, const std::s
 	surface.draw(TextSprite);
 }
 
-bool compareTeam(const std::vector <int>& team1, const std::vector <int> team2)
+bool compare_team(const std::vector <int>& team1, const std::vector <int> team2)
 {
 	return team1[1] > team2[1];
 }
 
-sf::Color dimCol(sf::Color col, float perc)
+sf::Color dim_color(sf::Color col, float perc)
 {
 	float p = perc / 100;
 	return sf::Color{ (sf::Uint8)(col.r * p), (sf::Uint8)(col.g * p), (sf::Uint8)(col.b * p), 255 };
 }
 
-sf::Color oppCol(const sf::Color& col)
+sf::Color opposite_color(const sf::Color& col)
 {
 	return { (sf::Uint8)(255 - col.r), (sf::Uint8)(255 - col.g), (sf::Uint8)(255 - col.b), 255 };
 }
 
-sf::Color stage_Colour()
+sf::Color stage_color()
 {
 	std::vector <int> Teams_Active;
 	std::vector <sf::Color> col;
 	for (int i = 0; i < numberOfTeams; i++) {
-		if (getTankPop(i) > 0 || getFortPop(i) > 0) {
+		if (get_tank_pop(i) > 0 || get_fort_pop(i) > 0) {
 			Teams_Active.push_back(i);
 			col.push_back(colorArr[i]);
 		}
@@ -4237,7 +4248,7 @@ sf::Color stage_Colour()
 	return stgCol;
 }
 
-void handleEvents(sf::RenderWindow& myWindow)
+void handle_events(sf::RenderWindow& myWindow)
 {
 	static bool MiniMapHighlight;
 
@@ -4283,9 +4294,9 @@ void handleEvents(sf::RenderWindow& myWindow)
 		// If Tank being followed is NULL or shuffled
 		if (Tank_Followed == nullptr || Tank_Followed_unique_id != Tank_Followed->unique_id || !Tank_Followed->ia) {
 			bool found = false;
-			// Find Tank with matching ID
+			// Find Tank with matching uid
 			for (int i = 0; i < EntityArr.size(); i++) {
-				if (EntityArr[i].ia && EntityArr[i].unique_id == Tank_Followed_unique_id && EntityArr[i].ID == "tank") {
+				if (EntityArr[i].ia && EntityArr[i].unique_id == Tank_Followed_unique_id && EntityArr[i].entity_type == EntityType::tank) {
 					Tank_Followed = &EntityArr[i];
 					found = true;
 					break;
@@ -4297,7 +4308,7 @@ void handleEvents(sf::RenderWindow& myWindow)
 
 				Camera_Follow_Tank = false;
 				for (int i = 0; i < EntityArr.size(); i++) {
-					if (EntityArr[i].ID == "tank") {
+					if (EntityArr[i].entity_type == EntityType::tank) {
 						temp_TankArray.push_back(&EntityArr[i]);
 					}
 				}
@@ -4378,12 +4389,12 @@ void handleEvents(sf::RenderWindow& myWindow)
 				// Check for Clicking Forts
 				bool fortClicked = false;
 				for (int i = 0; i < EntityArr.size(); i++) {  // Run through all Entities
-					if (EntityArr[i].ID == "fort") {  // Filter Out Tanks
+					if (EntityArr[i].entity_type == EntityType::fort) {  // Filter Out Tanks
 						if (EntityArr[i].collisionRect().contains({ Mouse_Pos.x + Camera_Pos[0], Mouse_Pos.y + Camera_Pos[1] })) {  // Check for Click
 							fortClicked = true;
 							for (auto& row_of_Tiles : TileArr) {
 								for (Tile& tile : row_of_Tiles) {
-									if (tile.FortID == EntityArr[i].unique_id) {
+									if (tile.fort_unique_id == EntityArr[i].unique_id) {
 										tile.flash(5, EntityArr[i].col, 64, 1);
 									}
 								}
@@ -4398,9 +4409,9 @@ void handleEvents(sf::RenderWindow& myWindow)
 				// Spawn Tanks
 				sf::FloatRect temp_rect{ -Camera_Pos[0],-Camera_Pos[1], GAME_MAP_WIDTH, GAME_MAP_HEIGHT };
 				if (temp_rect.contains({ x,y })) {
-					if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) { SpawnTank({ x + Camera_Pos[0], y + Camera_Pos[1] }, summonTeam, 1); }
-					else if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) { SpawnTank({ x + Camera_Pos[0], y + Camera_Pos[1] }, summonTeam, 0, true); }
-					else { SpawnTank({ x + Camera_Pos[0], y + Camera_Pos[1] }, summonTeam); }
+					if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) { spawn_tank({ x + Camera_Pos[0], y + Camera_Pos[1] }, summonTeam, 1); }
+					else if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) { spawn_tank({ x + Camera_Pos[0], y + Camera_Pos[1] }, summonTeam, 0, true); }
+					else { spawn_tank({ x + Camera_Pos[0], y + Camera_Pos[1] }, summonTeam); }
 				}
 			}
 			// Check for Right Click
@@ -4415,9 +4426,9 @@ void handleEvents(sf::RenderWindow& myWindow)
 				// Spawn Forts
 				sf::FloatRect temp_rect{ -Camera_Pos[0],-Camera_Pos[1], GAME_MAP_WIDTH, GAME_MAP_HEIGHT };
 				if (temp_rect.contains({ x,y })) {
-					if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) { SpawnFort({ x + Camera_Pos[0], y + Camera_Pos[1] }, summonTeam, NULL, true); }
-					else if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) { SpawnFort({ x + Camera_Pos[0], y + Camera_Pos[1] }, summonTeam, true); }
-					else { SpawnFort({ x + Camera_Pos[0], y + Camera_Pos[1] }, summonTeam); }
+					if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) { spawn_fort({ x + Camera_Pos[0], y + Camera_Pos[1] }, summonTeam, NULL, true); }
+					else if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) { spawn_fort({ x + Camera_Pos[0], y + Camera_Pos[1] }, summonTeam, true); }
+					else { spawn_fort({ x + Camera_Pos[0], y + Camera_Pos[1] }, summonTeam); }
 				}
 			}
 
@@ -4439,7 +4450,7 @@ void handleEvents(sf::RenderWindow& myWindow)
 				GameTextArr.clear();
 				EntityArr.clear();
 				DeadTankArr.clear();
-				SpawnGameText("ENTITIES DELETED", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 30, 5, 2, true);
+				spawn_game_text("ENTITIES DELETED", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 30, 5, 2, true);
 				break;
 			case sf::Keyboard::Space:
 				// Empty Event
@@ -4466,8 +4477,8 @@ void handleEvents(sf::RenderWindow& myWindow)
 				draw_stats = !draw_stats;
 				break;
 			case sf::Keyboard::F2:  // Screenshot
-				ScreenShot(window);
-				SpawnGameText("SCREENSHOT TAKEN", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 20, 5, 2, true);
+				take_screenshot(window);
+				spawn_game_text("SCREENSHOT TAKEN", { (float)(SCREEN_WIDTH / 2), (float)(SCREEN_HEIGHT / 2) }, { 255, 255, 255 }, 20, 5, 2, true);
 				break;
 			case sf::Keyboard::A:
 				autoplay = !autoplay;
@@ -4487,11 +4498,11 @@ void handleEvents(sf::RenderWindow& myWindow)
 			case sf::Keyboard::J: // Record JSON data
 				//recording = !recording;
 
-				saveJSONData();
+				save_json_data();
 
 				break;
 			case sf::Keyboard::S:
-				saveGameState("SaveGame.json");
+				save_game_state("SaveGame.json");
 				break;
 			}
 
@@ -4516,7 +4527,7 @@ void handleEvents(sf::RenderWindow& myWindow)
 	if (eventLogging) { std::cout << "  HANDLEEVENTS() executed." << "\n"; }
 }
 
-void keyboardInputs()
+void check_keyboard_inputs()
 {
 	if (eventLogging) { std::cout << "/KEYBOARDINPUTS()/" << "\n"; }
 
@@ -4580,13 +4591,13 @@ void keyboardInputs()
 	if (eventLogging) { std::cout << "  KEYBOARDINPUTS() executed" << "\n"; }
 }
 
-void drawBorders()
+void draw_borders()
 {
 	if (Camera_Pos[0] <= 0)
 	{
 		sf::FloatRect temp_rect;
 		temp_rect = { 0, 0, -Camera_Pos[0], SCREEN_HEIGHT };
-		drawFilledRect(window, temp_rect, { 0,0,0 });
+		draw_filled_rect(window, temp_rect, { 0,0,0 });
 	}
 }
 
@@ -4605,7 +4616,7 @@ bool Folder_Exists(const std::string& folderName)
 	return (info.st_mode & S_IFDIR) != 0;
 }
 
-void ScreenShot(sf::RenderWindow& surface)
+void take_screenshot(sf::RenderWindow& surface)
 {
 	int var; // To remove annoying warnings on Visual Studio
 	if (!Folder_Exists("screenshots")) {
@@ -4634,14 +4645,14 @@ void ScreenShot(sf::RenderWindow& surface)
 	var = _chdir("../");
 }
 
-void RenderEntities()
+void render_entities()
 {
 	if (eventLogging) { std::cout << "/RENDERENTITIES()/" << "\n"; }
 
 
 	// Draw Tanks first, then forts
 	for (auto& entity : EntityArr) {
-		if (entity.ID == "tank") {
+		if (entity.entity_type == EntityType::tank) {
 			if (entity.ia) {
 				if (!paused) { entity.AI(); }
 				if (GameScreenRect.contains({ entity.pos.x, entity.pos.y })) { entity.draw(); }
@@ -4659,7 +4670,7 @@ void RenderEntities()
 	}
 	int size = EntityArr.size();
 	for (int i = 0; i < size; i++) {
-		if (EntityArr[i].ID == "fort" && EntityArr[i].ia) {
+		if (EntityArr[i].entity_type == EntityType::fort && EntityArr[i].ia) {
 			if (!paused) { EntityArr[i].AI(); }
 			if (GameScreenRect.contains({ EntityArr[i].pos.x, EntityArr[i].pos.y })) { EntityArr[i].draw(); }
 		}
@@ -4690,7 +4701,7 @@ void RenderEntities()
 
 	totalTankPop = 0;
 	for (auto& entity : EntityArr) {
-		if (entity.ID == "tank" && entity.ia) {
+		if (entity.entity_type == EntityType::tank && entity.ia) {
 			totalTankPop += 1; // Count Total Tank Population
 		}
 	}
@@ -4733,7 +4744,7 @@ void RenderEntities()
 
 }
 
-void RenderLasers() {
+void render_lasers() {
 	if (eventLogging) { std::cout << "/RENDERLASERS()/" << "\n"; }
 
 	int size = LaserArr.size();
@@ -4752,7 +4763,7 @@ void RenderLasers() {
 	if (eventLogging) { std::cout << "  RENDERLASERS() executed" << "\n"; }
 }
 
-void RenderParticles()
+void render_particles()
 {
 	if (eventLogging) { std::cout << "RENDERPARTICLES() called..." << "\n"; }
 
@@ -4773,7 +4784,7 @@ void RenderParticles()
 	if (eventLogging) { std::cout << "RENDERPARTICLES() executed." << "\n"; }
 }
 
-void RenderMissles()
+void render_missles()
 {
 	if (eventLogging) { std::cout << "/RENDERMISSLES()/" << "\n"; }
 
@@ -4793,7 +4804,7 @@ void RenderMissles()
 	if (eventLogging) { std::cout << "  RENDERMISSLES() executed" << "\n"; }
 }
 
-void RenderMinimap()
+void render_minimap()
 {
 	if (eventLogging) { std::cout << "/RENDERMINIMAP()/" << "\n"; }
 
@@ -4815,8 +4826,8 @@ void RenderMinimap()
 	float last_y = NULL;
 
 
-	drawFilledRect(window, MiniMapRect, t_col);
-	drawRect(window, MiniMapRect, oppCol(StageColour), 1);
+	draw_filled_rect(window, MiniMapRect, t_col);
+	draw_rect(window, MiniMapRect, opposite_color(StageColour), 1);
 
 	// Draw Tiles
 	if (draw_Tiles) {
@@ -4879,7 +4890,7 @@ void RenderMinimap()
 							(adjusted_x - grid_y) % 3 == 0) && !(TileArr[i][j].border_tile)
 							) {
 							float tmp = c.a;
-							c = oppCol(c);
+							c = opposite_color(c);
 							c.a = tmp;
 						}
 
@@ -4898,36 +4909,36 @@ void RenderMinimap()
 
 	// Draw Tanks
 	for (Entity& entity : EntityArr) {
-		if (entity.ia && entity.ID == "tank") {
+		if (entity.ia && entity.entity_type == EntityType::tank) {
 			t_pos = entity.pos;
 			g_pos.x = (t_pos.x / GAME_MAP_WIDTH) * MINIMAP_WIDTH + MiniMapRect.left;
 			g_pos.y = (t_pos.y / GAME_MAP_HEIGHT) * MINIMAP_HEIGHT + MiniMapRect.top;
 
 			sf::Color col = entity.col;
-			if (game_ticks % 180 < 10 && entity.level > 0) { col = oppCol(col); }
-			drawFilledRect(window, { g_pos.x - 1, g_pos.y - 1, 2, 2 }, col);
+			if (game_ticks % 180 < 10 && entity.level > 0) { col = opposite_color(col); }
+			draw_filled_rect(window, { g_pos.x - 1, g_pos.y - 1, 2, 2 }, col);
 		}
 	}
 	// Draw Forts
 	for (Entity& entity : EntityArr) {
-		if (entity.ia && entity.ID == "fort") {
+		if (entity.ia && entity.entity_type == EntityType::fort) {
 			t_pos = entity.pos;
 			g_pos.x = (t_pos.x / GAME_MAP_WIDTH) * MINIMAP_WIDTH + MiniMapRect.left;
 			g_pos.y = (t_pos.y / GAME_MAP_HEIGHT) * MINIMAP_HEIGHT + MiniMapRect.top;
 
 
 			sf::Color col = entity.col;
-			if (entity.Tank_spawn_timer < 0) { col = dimCol(col, 60); }
+			if (entity.Tank_spawn_timer < 0) { col = dim_color(col, 60); }
 
 			if (entity.special_fort) {
-				drawFilledRect(window, { g_pos.x - 3, g_pos.y - 3, 6, 6 }, col);
-				drawRect(window, { g_pos.x - 3, g_pos.y - 3, 5, 5 }, dimCol(col, 25), 1);
-				//drawRect(window, { g_pos.x - 4, g_pos.y - 4, 7, 7 }, { 0,0,0 }, 1);
+				draw_filled_rect(window, { g_pos.x - 3, g_pos.y - 3, 6, 6 }, col);
+				draw_rect(window, { g_pos.x - 3, g_pos.y - 3, 5, 5 }, dim_color(col, 25), 1);
+				//draw_rect(window, { g_pos.x - 4, g_pos.y - 4, 7, 7 }, { 0,0,0 }, 1);
 			}
 			else {
-				drawFilledRect(window, { g_pos.x - 2, g_pos.y - 2, 4, 4 }, col);
-				drawRect(window, { g_pos.x - 2, g_pos.y - 2, 4, 4 }, dimCol(entity.col, 25), 1);
-				//drawRect(window, { g_pos.x - 3, g_pos.y - 3, 6, 6 }, { 0,0,0 }, 1);
+				draw_filled_rect(window, { g_pos.x - 2, g_pos.y - 2, 4, 4 }, col);
+				draw_rect(window, { g_pos.x - 2, g_pos.y - 2, 4, 4 }, dim_color(entity.col, 25), 1);
+				//draw_rect(window, { g_pos.x - 3, g_pos.y - 3, 6, 6 }, { 0,0,0 }, 1);
 			}
 		}
 	}
@@ -4938,13 +4949,13 @@ void RenderMinimap()
 	t_pos.x = SCREEN_WIDTH * MINIMAP_WIDTH / GAME_MAP_WIDTH;
 	t_pos.y = SCREEN_HEIGHT * MINIMAP_HEIGHT / GAME_MAP_HEIGHT;
 
-	drawRect(window, { g_pos.x, g_pos.y, t_pos.x, t_pos.y }, oppCol(StageColour), 1);
+	draw_rect(window, { g_pos.x, g_pos.y, t_pos.x, t_pos.y }, opposite_color(StageColour), 1);
 
 
 	if (eventLogging) { std::cout << "  RENDERMINIMAP() executed" << "\n"; }
 }
 
-void RenderGameTexts(sf::RenderWindow& surface)
+void render_game_texts(sf::RenderWindow& surface)
 {
 	for (int i = 0; i < GameTextArr.size(); i++) {
 		GameTextArr[i].draw(surface);
@@ -4957,7 +4968,7 @@ void RenderGameTexts(sf::RenderWindow& surface)
 	}
 }
 
-void RenderDeadTanks()
+void render_dead_tanks()
 {
 	for (int i = 0; i < DeadTankArr.size(); i++) {
 		if (!paused) { DeadTankArr[i].AI(); }
@@ -4971,7 +4982,7 @@ void RenderDeadTanks()
 	);
 }
 
-void RenderButtons() {
+void render_buttons() {
 	for (int i = 0; i < ButtonArr.size(); i++) {
 		ButtonArr[i].draw();
 	}
@@ -4983,7 +4994,7 @@ void RenderButtons() {
 	}
 }
 
-void RenderFloatingTexts()
+void render_floating_texts()
 {
 	for (int i = 0; i < FloatingTextArr.size(); i++) {
 		if (GameScreenRect.contains(FloatingTextArr[i].pos)) {
@@ -5002,30 +5013,30 @@ void RenderFloatingTexts()
 }
 
 
-void DrawUI(sf::RenderWindow& surface)
+void draw_ui(sf::RenderWindow& surface)
 {
 	// Draw FPS
 
-	renderText(surface, { 5 + SCREEN_WIDTH - 70, 30 + 5 }, std::to_string((int)LastFPS), Font_1, 40, { 32,32,32,192 }, 2, { 0,0,0,192 });
-	renderText(surface, { SCREEN_WIDTH - 70, 30 }, std::to_string((int)LastFPS), Font_1, 40, { 255,255,255,192 }, 2, { 0,0,0,192 });
+	render_text(surface, { 5 + SCREEN_WIDTH - 70, 30 + 5 }, std::to_string((int)LastFPS), Font_1, 40, { 32,32,32,192 }, 2, { 0,0,0,192 });
+	render_text(surface, { SCREEN_WIDTH - 70, 30 }, std::to_string((int)LastFPS), Font_1, 40, { 255,255,255,192 }, 2, { 0,0,0,192 });
 
 
 	//Render Game Stats
 	if (draw_stats) {
 		std::string text;
-		text = "Entitities: " + std::to_string(ActiveEntityPop());
-		renderText(surface, { SCREEN_WIDTH - 75, 125 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
+		text = "Entitities: " + std::to_string(active_entity_pop());
+		render_text(surface, { SCREEN_WIDTH - 75, 125 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
 		text = "Particles: " + std::to_string(ParticleArr.size());
-		renderText(surface, { SCREEN_WIDTH - 75, 150 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
+		render_text(surface, { SCREEN_WIDTH - 75, 150 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
 		text = "Lasers: " + std::to_string(LaserArr.size());
-		renderText(surface, { SCREEN_WIDTH - 75, 175 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
+		render_text(surface, { SCREEN_WIDTH - 75, 175 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
 		text = "Missles: " + std::to_string(MissleArr.size());
-		renderText(surface, { SCREEN_WIDTH - 75, 200 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
+		render_text(surface, { SCREEN_WIDTH - 75, 200 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
 		text = "Dead Tanks:" + std::to_string(DeadTankArr.size());
-		renderText(surface, { SCREEN_WIDTH - 75, 225 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
+		render_text(surface, { SCREEN_WIDTH - 75, 225 }, text, Font_2, 20, { 255,255,255,192 }, 1, { 0,0,0,192 });
 
 
-		drawLogs();
+		draw_logs();
 	}
 
 	// Show Team Stats
@@ -5036,12 +5047,12 @@ void DrawUI(sf::RenderWindow& surface)
 	sf::Color n_col;
 
 	for (int i = 0; i < numberOfTeams; i++) {
-		if (getFortPop(i) > 0) {
-			teamList.push_back({ i, getFortPop(i) });
+		if (get_fort_pop(i) > 0) {
+			teamList.push_back({ i, get_fort_pop(i) });
 		}
 	}
 	// sort team list
-	sort(teamList.begin(), teamList.end(), compareTeam);
+	sort(teamList.begin(), teamList.end(), compare_team);
 
 	float font_size = 16;
 	// Display Team Fort Stats
@@ -5052,22 +5063,22 @@ void DrawUI(sf::RenderWindow& surface)
 
 		if (!DEBUG_FEATURES) {
 			// Replace std::format with string concatenation to avoid std::format dependency
-			int fort_count = getFortPop(j) - getFortPop(j, true);
-			int captured = getFortPop(j, true);
+			int fort_count = get_fort_pop(j) - get_fort_pop(j, true);
+			int captured = get_fort_pop(j, true);
 			int percent = (int)std::round(TeamTilePerc[j]);
 			text = "Forts: " + std::to_string(k) + "[" + std::to_string(fort_count) + "]   (" + std::to_string(percent) + "%)";
 		}
 		else {
 			// Debug detailed format
-			int normal_forts = getFortPop(j) - getFortPop(j, true) - getSpecialFortPop(j);
-			int special_forts = getSpecialFortPop(j);
-			int captured = getFortPop(j, true);
+			int normal_forts = get_fort_pop(j) - get_fort_pop(j, true) - get_special_fort_pop(j);
+			int special_forts = get_special_fort_pop(j);
+			int captured = get_fort_pop(j, true);
 			text = "Forts: [" + std::to_string(normal_forts) + "][" + std::to_string(special_forts) + "][" + std::to_string(captured) + "]";
-			text += "  (" + roundToDecimalPlaces(TeamTilePerc[j], 1) + "%)";
+			text += "  (" + round_to_decimal_places(TeamTilePerc[j], 1) + "%)";
 		}
 
 
-		renderText(surface, { 5, 25.f + (font_size * 1.25f * i) }, text, Font_2, font_size, n_col, 1, { 0,0,0,n_col.a }, false);
+		render_text(surface, { 5, 25.f + (font_size * 1.25f * i) }, text, Font_2, font_size, n_col, 1, { 0,0,0,n_col.a }, false);
 	}
 
 
@@ -5076,12 +5087,12 @@ void DrawUI(sf::RenderWindow& surface)
 	teamList.clear();
 
 	for (int i = 0; i < numberOfTeams; i++) {
-		if (getTankPop(i) > 0) {
-			teamList.push_back({ i, getTankPop(i) });
+		if (get_tank_pop(i) > 0) {
+			teamList.push_back({ i, get_tank_pop(i) });
 		}
 	}
 	// sort team list
-	sort(teamList.begin(), teamList.end(), compareTeam);
+	sort(teamList.begin(), teamList.end(), compare_team);
 	// Display Team Tank Stats
 	std::string text;
 	for (int i = 0; i < teamList.size(); i++) {
@@ -5089,37 +5100,37 @@ void DrawUI(sf::RenderWindow& surface)
 		n_col = colorArr[j]; n_col.a = 128;
 		if (DEBUG_FEATURES) {
 			// debug version: show tanks with/without ammo and percent share
-			int withAmmo = getTankPop(j, 1);
-			int withoutAmmo = getTankPop(j, 2);
+			int withAmmo = get_tank_pop(j, 1);
+			int withoutAmmo = get_tank_pop(j, 2);
 			double percentVal = 0.0;
-			if (totalTankPop > 0) percentVal = (double)getTankPop(j) * 100.0 / (double)totalTankPop;
-			text = "Tanks: [" + std::to_string(withAmmo) + "][" + std::to_string(withoutAmmo) + "] (" + roundToDecimalPlaces(percentVal, 1) + "%)";
+			if (totalTankPop > 0) percentVal = (double)get_tank_pop(j) * 100.0 / (double)totalTankPop;
+			text = "Tanks: [" + std::to_string(withAmmo) + "][" + std::to_string(withoutAmmo) + "] (" + round_to_decimal_places(percentVal, 1) + "%)";
 		}
 		else {
 			// normal view
-			text = "Tanks: " + std::to_string(k) + "[" + std::to_string(getSpecialTankPop(j)) + "]";
+			text = "Tanks: " + std::to_string(k) + "[" + std::to_string(get_special_tank_pop(j)) + "]";
 		}
-		renderText(surface, { 5, (font_size * 1.25f * i) + last_y }, text, Font_2, font_size, n_col, 1, { 0,0,0,n_col.a }, false);
+		render_text(surface, { 5, (font_size * 1.25f * i) + last_y }, text, Font_2, font_size, n_col, 1, { 0,0,0,n_col.a }, false);
 	}
 
 
 	// Render Game texts
-	RenderGameTexts(surface);
+	render_game_texts(surface);
 
 
 
 	// DrawButtons
-	RenderButtons();
+	render_buttons();
 }
 
 
 
 
 
-void SpawnTank(sf::Vector2f pos, int team, int level, bool no_ammo) {
+void spawn_tank(sf::Vector2f pos, int team, int level, bool no_ammo) {
 	if (eventLogging) { std::cout << "\n"; std::cout << "/SPAWNTANK()/" << "\n"; }
 
-	Entity newTank("tank");
+	Entity newTank(EntityType::tank);
 	newTank.spawn(pos, team);
 	newTank.level = level;
 
@@ -5127,7 +5138,7 @@ void SpawnTank(sf::Vector2f pos, int team, int level, bool no_ammo) {
 	if (no_ammo) {
 		newTank.no_ammo = true;
 		newTank.ammo_supply = 0;
-		newTank.hp = 1;
+		newTank.hitpoints = 1;
 	}
 
 	EntityArr.push_back(newTank);
@@ -5140,10 +5151,10 @@ void SpawnTank(sf::Vector2f pos, int team, int level, bool no_ammo) {
 	if (eventLogging) { std::cout << "  SPAWNTANK() executed" << "\n"; }
 }
 
-void SpawnFort(sf::Vector2f pos, int team, bool captured, bool special_fort) {
+void spawn_fort(sf::Vector2f pos, int team, bool captured, bool special_fort) {
 	if (eventLogging) { std::cout << "\n"; std::cout << "/SPAWNFORT()/" << "\n"; }
 
-	Entity newFort("fort");
+	Entity newFort(EntityType::fort);
 	newFort.spawn(pos, team);
 	if (!captured) { newFort.Tank_spawn_timer = 0; }
 	else { newFort.Tank_spawn_timer = -fort_assimilation_ticks; }
@@ -5166,7 +5177,7 @@ void SpawnFort(sf::Vector2f pos, int team, bool captured, bool special_fort) {
 	if (eventLogging) { std::cout << "\n"; std::cout << "  SPAWNFORT() executed" << "\n"; }
 }
 
-void SpawnParticle(sf::Vector2f pos, float size, float range, int type, float durRate, sf::Color col)
+void spawn_particle(sf::Vector2f pos, float size, float range, int type, float durRate, sf::Color col)
 {
 	if (!GameScreenRect.contains(pos) or paused) { return; }
 	if (eventLogging && false) { std::cout << "\n"; std::cout << "/SPAWNPARTICLE()/" << "\n"; }
@@ -5178,7 +5189,7 @@ void SpawnParticle(sf::Vector2f pos, float size, float range, int type, float du
 	if (eventLogging && false) { std::cout << "\n"; std::cout << "  SPAWNPARTICLE() executed" << "\n"; }
 }
 
-void SpawnLaser(float posx, float posy, float vel, float ang, float dam, float team, std::array<int, 2> sender_specs, std::vector <float> size) {
+void spawn_laser(float posx, float posy, float vel, float ang, float dam, float team, std::array<int, 2> sender_specs, std::vector <float> size) {
 
 	if (eventLogging) { std::cout << "/SPAWNLASER()/" << "\n"; }
 
@@ -5190,7 +5201,7 @@ void SpawnLaser(float posx, float posy, float vel, float ang, float dam, float t
 	if (eventLogging) { std::cout << "  SPAWNLASER() executed" << "\n"; }
 }
 
-void SpawnMissle(
+void spawn_missle(
 	sf::Vector2f pos,
 	float vel,
 	float ang,
@@ -5218,42 +5229,42 @@ void SpawnMissle(
 	if (eventLogging) { std::cout << "  SPAWNMISSLE() executed" << "\n"; }
 }
 
-void SpawnGameText(std::string Text, sf::Vector2f pos, sf::Color col, int size, float dur, float thickness, bool shadow)
+void spawn_game_text(std::string Text, sf::Vector2f pos, sf::Color col, int size, float dur, float thickness, bool shadow)
 {
 	GameDisplayText newGT(Text, pos, col, size, dur, thickness, shadow);
 	GameTextArr.push_back(newGT);
 }
 
-void SpawnDeadTank(sf::Vector2f pos, float ang, int team)
+void spawn_dead_tank(sf::Vector2f pos, float ang, int team)
 {
 	DeadTank newDeadTank;
 	newDeadTank.spawn(pos, ang, team);
 	DeadTankArr.push_back(newDeadTank);
 }
 
-void SpawnButton(sf::Vector2f pos, sf::Vector2f size, std::string text, sf::Color colour, int action, int text_size) {
+void spawn_button(sf::Vector2f pos, sf::Vector2f size, std::string text, sf::Color colour, int action, int text_size) {
 	Button newButton(pos, size, text, colour, action, text_size);
 	ButtonArr.push_back(newButton);
 }
 
-void SpawnFloatingText(std::string Text, sf::Vector2f pos, sf::Color col, sf::Color outline_col, int size, float dur, sf::Font font, float vel) {
+void spawn_floating_text(std::string Text, sf::Vector2f pos, sf::Color col, sf::Color outline_col, int size, float dur, sf::Font font, float vel) {
 	FloatingText newFT(Text, pos, col, outline_col, size, dur, font, vel);
 	FloatingTextArr.push_back(newFT);
 }
 
 
-void drawLine(sf::RenderWindow& wind, sf::Vector2f pos1, sf::Vector2f pos2, sf::Color col)
+void draw_line(sf::RenderWindow& wind, sf::Vector2f pos1, sf::Vector2f pos2, sf::Color col)
 {
-	static sf::VertexArray drawLine_line(sf::Lines, 2);
-	drawLine_line[0].position = pos1;
-	drawLine_line[0].color = col;
-	drawLine_line[1].position = pos2;
-	drawLine_line[1].color = col;
+	static sf::VertexArray draw_line_line(sf::Lines, 2);
+	draw_line_line[0].position = pos1;
+	draw_line_line[0].color = col;
+	draw_line_line[1].position = pos2;
+	draw_line_line[1].color = col;
 
-	wind.draw(drawLine_line);
+	wind.draw(draw_line_line);
 }
 
-void drawFilledCircle(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::Color col) {
+void draw_filled_circle(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::Color col) {
 
 	static sf::CircleShape circle;
 
@@ -5265,7 +5276,7 @@ void drawFilledCircle(sf::RenderWindow& myWindow, sf::Vector2f center, float rad
 	myWindow.draw(circle);
 }
 
-void drawCircle(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::Color col, int thickness) {
+void draw_circle(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::Color col, int thickness) {
 	sf::CircleShape circle(radius);
 
 	circle.setOrigin(circle.getGlobalBounds().width / 2, circle.getGlobalBounds().height / 2);
@@ -5275,7 +5286,7 @@ void drawCircle(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, s
 	myWindow.draw(circle);
 }
 
-void drawRegPolygon(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::Color col, int thickness, int sides, float rotation, bool fill) {
+void draw_regular_polygon(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::Color col, int thickness, int sides, float rotation, bool fill) {
 	static sf::CircleShape circle(radius);
 
 	circle.setOrigin(circle.getGlobalBounds().width / 2, circle.getGlobalBounds().height / 2);
@@ -5288,7 +5299,7 @@ void drawRegPolygon(sf::RenderWindow& myWindow, sf::Vector2f center, float radiu
 	myWindow.draw(circle);
 }
 
-void drawRect(sf::RenderWindow& myWindow, const sf::FloatRect rect, sf::Color col, int thickness)
+void draw_rect(sf::RenderWindow& myWindow, const sf::FloatRect rect, sf::Color col, int thickness)
 {
 	static sf::RectangleShape Rectangle;
 	Rectangle.setPosition(rect.left, rect.top);
@@ -5300,17 +5311,17 @@ void drawRect(sf::RenderWindow& myWindow, const sf::FloatRect rect, sf::Color co
 	myWindow.draw(Rectangle);
 }
 
-void drawFilledRect(sf::RenderWindow& myWindow, const sf::FloatRect& rect, sf::Color col)
+void draw_filled_rect(sf::RenderWindow& myWindow, const sf::FloatRect& rect, sf::Color col)
 {
-	static sf::RectangleShape drawFilledRect_Rect;
-	drawFilledRect_Rect.setPosition(rect.left, rect.top);
-	drawFilledRect_Rect.setSize({ rect.width, rect.height });
-	drawFilledRect_Rect.setFillColor(col);
+	static sf::RectangleShape draw_filled_rect_Rect;
+	draw_filled_rect_Rect.setPosition(rect.left, rect.top);
+	draw_filled_rect_Rect.setSize({ rect.width, rect.height });
+	draw_filled_rect_Rect.setFillColor(col);
 
-	myWindow.draw(drawFilledRect_Rect);
+	myWindow.draw(draw_filled_rect_Rect);
 }
 
-void drawArc(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::Color col, int thickness, float startAngle, float endAngle, int pointCount) {
+void draw_arc(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::Color col, int thickness, float startAngle, float endAngle, int pointCount) {
 	// Create a vertex array to represent the arc
 	sf::VertexArray arc(sf::TriangleStrip, (pointCount + 1) * 2);
 
@@ -5342,7 +5353,7 @@ void drawArc(sf::RenderWindow& myWindow, sf::Vector2f center, float radius, sf::
 }
 
 
-bool lineSegmentIntersection(sf::Vector2f p1, sf::Vector2f p2, sf::Vector2f q1, sf::Vector2f q2) {
+bool line_segment_intersection(sf::Vector2f p1, sf::Vector2f p2, sf::Vector2f q1, sf::Vector2f q2) {
 	auto cross = [](sf::Vector2f v1, sf::Vector2f v2) {
 		return v1.x * v2.y - v1.y * v2.x;
 		};
@@ -5369,7 +5380,7 @@ bool lineSegmentIntersection(sf::Vector2f p1, sf::Vector2f p2, sf::Vector2f q1, 
 	return (t >= 0 && t <= 1) && (u >= 0 && u <= 1);
 }
 
-bool checkLineCollision(sf::FloatRect rect, sf::Vector2f pos1, sf::Vector2f pos2) {
+bool check_line_collision(sf::FloatRect rect, sf::Vector2f pos1, sf::Vector2f pos2) {
 	// Check if either endpoint of the line is within the rectangle
 	if (rect.contains(pos1) || rect.contains(pos2)) {
 		return true;
@@ -5382,26 +5393,26 @@ bool checkLineCollision(sf::FloatRect rect, sf::Vector2f pos1, sf::Vector2f pos2
 	sf::Vector2f bottomRight(rect.left + rect.width, rect.top + rect.height);
 
 	// Check intersection with each of the rectangle's edges
-	if (lineSegmentIntersection(pos1, pos2, topLeft, topRight) ||
-		lineSegmentIntersection(pos1, pos2, topRight, bottomRight) ||
-		lineSegmentIntersection(pos1, pos2, bottomRight, bottomLeft) ||
-		lineSegmentIntersection(pos1, pos2, bottomLeft, topLeft)) {
+	if (line_segment_intersection(pos1, pos2, topLeft, topRight) ||
+		line_segment_intersection(pos1, pos2, topRight, bottomRight) ||
+		line_segment_intersection(pos1, pos2, bottomRight, bottomLeft) ||
+		line_segment_intersection(pos1, pos2, bottomLeft, topLeft)) {
 		return true;
 	}
 
 	return false;
 }
 
-void updateStageColour()
+void update_stage_color()
 {
-	StageColour = stage_Colour();
+	StageColour = stage_color();
 }
 
-int getTankPop(int team, int mode)
+int get_tank_pop(int team, int mode)
 {
 	int num = 0;
 	for (int i = 0; i < EntityArr.size(); i++) {
-		if (EntityArr[i].ID == "tank" && EntityArr[i].team == team && EntityArr[i].ia) {
+		if (EntityArr[i].entity_type == EntityType::tank && EntityArr[i].team == team && EntityArr[i].ia) {
 			if (mode == 0) {
 				num++;  // Count all tanks
 			}
@@ -5420,7 +5431,7 @@ int getTankPop(int team, int mode)
 	return num;
 }
 
-int getFortPop(int team, bool captured)
+int get_fort_pop(int team, bool captured)
 {
 	if (captured) {
 		return temp_Captured_Fort_Pop[team];
@@ -5431,12 +5442,12 @@ int getFortPop(int team, bool captured)
 
 }
 
-int getAverageTankAge(int team)
+int get_average_tank_age(int team)
 {
 	float num = 0;
 	float age = 0;
 	for (int i = 0; i < EntityArr.size(); i++) {
-		if (EntityArr[i].ID == "tank" && EntityArr[i].team == team) {
+		if (EntityArr[i].entity_type == EntityType::tank && EntityArr[i].team == team) {
 			num += 1;
 			age += EntityArr[i].age * 1000 / FPS;
 		}
@@ -5445,17 +5456,17 @@ int getAverageTankAge(int team)
 	return (int)(round)(age / num);
 }
 
-int getSpecialTankPop(int team)
+int get_special_tank_pop(int team)
 {
 	return temp_Special_Tank_Pop[team];
 }
 
-int getSpecialFortPop(int team)
+int get_special_fort_pop(int team)
 {
 	return temp_Special_Fort_Pop[team];
 }
 
-int getTerritory(int team)
+int get_team_territory(int team)
 {
 	int num = 0;
 	for (auto& row_of_Tiles : TileArr) {
@@ -5468,7 +5479,7 @@ int getTerritory(int team)
 	return num;
 }
 
-void UpdateTiles()
+void update_tiles()
 {
 	if (eventLogging) { std::cout << "###== Updating Tiles...; GameTick: " << game_ticks << "  ==###" << "\n"; }
 	int no_of_Tile_rows = TileArr.size();
@@ -5532,7 +5543,7 @@ void UpdateTiles()
 	TankDeathPositions.clear();
 }
 
-void InitTiles()
+void init_tiles()
 {
 	TileArr.clear();
 	double XX = GAME_MAP_WIDTH;		// Width of the game map
@@ -5563,18 +5574,18 @@ void InitTiles()
 		cy++;
 	}
 
-	calculateTilePopulation();
+	update_tile_pop();
 
 	// Set neighbors for each tile
 	for (int i = 0; i < TileArr.size(); i++) {
 		for (int j = 0; j < TileArr[i].size(); j++) {
-			TileArr[i][j].neighbors = getTileNeighbors(TileArr[i][j]);
+			TileArr[i][j].neighbors = get_tile_neighbours(TileArr[i][j]);
 		}
 	}
 }
 
 
-void DrawTiles()
+void draw_tiles()
 {
 	for (auto& row_of_tiles : TileArr) {
 		for (Tile& tile : row_of_tiles) {
@@ -5585,7 +5596,7 @@ void DrawTiles()
 	}
 }
 
-void drawThickLine(sf::RenderWindow& wind, sf::Vector2f pos1, sf::Vector2f pos2, float thickness, sf::Color color)
+void draw_thick_line(sf::RenderWindow& wind, sf::Vector2f pos1, sf::Vector2f pos2, float thickness, sf::Color color)
 {
 	sf::Vector2f dir = pos2 - pos1;
 	float sqLen = dir.x * dir.x + dir.y * dir.y;
@@ -5614,7 +5625,7 @@ void drawThickLine(sf::RenderWindow& wind, sf::Vector2f pos1, sf::Vector2f pos2,
 	wind.draw(vertices, 4, sf::TriangleStrip);
 }
 
-void DemoGame(int type)
+void generate_random_map(int type)
 {
 	if (eventLogging) std::cout << "/DEMOGAME()/\n";
 
@@ -5643,8 +5654,8 @@ void DemoGame(int type)
 	// ── Shared setup ─────────────────────────────────────────────────────────
 	constexpr int   MAX_RETRIES = 1000;
 	constexpr float DEG_TO_RAD = (float)(3.141592654 / 180.0);
-	const std::vector<float> MAP_SIZES = { 2500.f, 3200.f, 4000.f, 5000.f, 8000.f };
-	const std::vector<float> FORT_MULTIPLIERS = { 0.375f, 0.6144f, 0.96f, 1.5f, 2.5f };
+	const std::vector<float> MAP_SIZES = { 2500.f, 3200.f, 4000.f, 5000.f, 8000.f, 10'000.f, 16'384.f};
+	const std::vector<float> FORT_MULTIPLIERS = { 0.375f, 0.6144f, 0.96f, 1.5f, 2.5f , 3.3f, 6.f};
 	int sizeIdx = rand() % (int)MAP_SIZES.size();
 
 	GAME_MAP_WIDTH = MAP_SIZES[sizeIdx];
@@ -5671,13 +5682,13 @@ void DemoGame(int type)
 	// Spawns an evenly-spaced ring of forts at `center` (used by types 0 and 1)
 	auto spawnFortCluster = [&](sf::Vector2f center, int team)
 		{
-			if (!doubledForts && !tripletForts && !quadForts) { SpawnFort(center, team); return; }
+			if (!doubledForts && !tripletForts && !quadForts) { spawn_fort(center, team); return; }
 			int   n = doubledForts ? 2 : (tripletForts ? 3 : 4);
 			float ang = (float)(rand() % 360);
 			float r = Fort_RANGE * 0.3f;
 			for (int k = 0; k < n; k++)
 			{
-				SpawnFort({ std::cos(ang * DEG_TO_RAD) * r + center.x,
+				spawn_fort({ std::cos(ang * DEG_TO_RAD) * r + center.x,
 							std::sin(ang * DEG_TO_RAD) * r + center.y }, team);
 				ang += 360.0f / n;
 			}
@@ -5690,18 +5701,18 @@ void DemoGame(int type)
 	if (type == 0)
 	{
 		if (eventLogging) std::cout << "\n  Demogame 1: Random Map. Setting up...\n";
-		SpawnGameText("Random Game",
+		spawn_game_text("Random Game",
 			{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f },
 			{ 255, 255, 255 }, 40, 5, 2, true);
 
 		int teamCount = (rand() % (numberOfTeams - 1)) + 2;
 		fortsPerTeam *= std::sqrt(16 / teamCount);  // integer division intentional
 
-		switch (rand() % 4)
+		switch (rand() % 7)
 		{
-		case 1: doubledForts = true; fortsPerTeam /= 2; distFactor = std::sqrt(2.0f); break;
-		case 2: tripletForts = true; fortsPerTeam /= 3; distFactor = std::sqrt(3.0f); break;
-		case 3: quadForts = true; fortsPerTeam /= 4; distFactor = std::sqrt(4.0f); break;
+		case 2: case 3: doubledForts = true; fortsPerTeam /= 2; distFactor = std::sqrt(2.0f); break;
+		case 4: case 5: tripletForts = true; fortsPerTeam /= 3; distFactor = std::sqrt(3.0f); break;
+		case 6: quadForts = true; fortsPerTeam /= 4; distFactor = std::sqrt(4.0f); break;
 		}
 
 		std::vector<int>          teams = selectTeams(teamCount);
@@ -5714,7 +5725,7 @@ void DemoGame(int type)
 			int retries = 0;
 			bool tooClose;
 			do {
-				if (++retries > MAX_RETRIES) { EntityArr.clear(); std::cout << "Random Map: anchor placement failed!\n"; DemoGame(0); return; }
+				if (++retries > MAX_RETRIES) { EntityArr.clear(); std::cout << "Random Map: anchor placement failed!\n"; generate_random_map(0); return; }
 				c = { (rand() % 100) * GAME_MAP_WIDTH / 100.0f,
 					  (rand() % 100) * GAME_MAP_HEIGHT / 100.0f };
 				tooClose = std::any_of(anchors.begin(), anchors.end(), [&](const sf::Vector2f& a)
@@ -5735,7 +5746,7 @@ void DemoGame(int type)
 				sf::Vector2f pos;
 				bool repeat;
 				do {
-					if (++retries > MAX_RETRIES) { EntityArr.clear(); std::cout << "Random Map: fort placement failed!\n"; DemoGame(); return; }
+					if (++retries > MAX_RETRIES) { EntityArr.clear(); std::cout << "Random Map: fort placement failed!\n"; generate_random_map(); return; }
 
 					float dis = (float)(rand() % 500) * GAME_MAP_WIDTH / 2500.0f
 						* std::pow((float)numberOfTeams / teamCount, 0.75f);
@@ -5746,7 +5757,7 @@ void DemoGame(int type)
 					repeat = !mapBounds.contains(pos);
 					for (const auto& e : EntityArr)
 					{
-						if (repeat || e.ID != "fort") continue;
+						if (repeat || e.entity_type != EntityType::fort) continue;
 						float dx = pos.x - e.pos.x, dy = pos.y - e.pos.y;
 						float dist = std::sqrt(dx * dx + dy * dy);
 						if (e.team != teams[i] && dist <= Fort_RANGE * 1.25f * distFactor) repeat = true;
@@ -5768,18 +5779,18 @@ void DemoGame(int type)
 	if (type == 1)
 	{
 		if (eventLogging) std::cout << "  Demogame 2: 1 VS 1. Setting up...\n";
-		SpawnGameText("1 VS 1",
+		spawn_game_text("1 VS 1",
 			{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f },
 			{ 255, 255, 255 }, 40, 5, 3, true);
 
 		constexpr int TEAM_COUNT = 2;
 		fortsPerTeam *= std::sqrt(16 / TEAM_COUNT) * 2.0f;  // integer division intentional
 
-		switch (rand() % 4)
+		switch (rand() % 7)
 		{
-		case 1: doubledForts = true; fortsPerTeam /= 2; distFactor = 2.0f; break;
-		case 2: tripletForts = true; fortsPerTeam /= 3; distFactor = 3.0f; break;
-		case 3: quadForts = true; fortsPerTeam /= 4; distFactor = 4.0f; break;
+		case 2: case 3: doubledForts = true; fortsPerTeam /= 2; distFactor = 2.0f; break;
+		case 4: case 5: tripletForts = true; fortsPerTeam /= 3; distFactor = 3.0f; break;
+		case 6: quadForts = true; fortsPerTeam /= 4; distFactor = 4.0f; break;
 		}
 
 		std::vector<int> teams = selectTeams(TEAM_COUNT);
@@ -5797,7 +5808,7 @@ void DemoGame(int type)
 				bool repeat;
 				int  retries = 0;
 				do {
-					if (++retries > MAX_RETRIES) { EntityArr.clear(); std::cout << "1 VS 1: fort placement failed!\n"; DemoGame(); return; }
+					if (++retries > MAX_RETRIES) { EntityArr.clear(); std::cout << "1 VS 1: fort placement failed!\n"; generate_random_map(); return; }
 
 					float teamAng = arcRange * j + angleOffset;
 					float ang = teamAng + (float)(rand() % (int)arcRange);
@@ -5808,7 +5819,7 @@ void DemoGame(int type)
 					repeat = !mapBounds.contains(pos);
 					for (const auto& e : EntityArr)
 					{
-						if (repeat || e.ID != "fort") continue;
+						if (repeat || e.entity_type != EntityType::fort) continue;
 						float dx = e.pos.x - pos.x, dy = e.pos.y - pos.y;
 						float dist = std::sqrt(dx * dx + dy * dy);
 						if (e.team != teams[j] && dist < Fort_RANGE * 1.1f * distFactor) repeat = true;
@@ -5830,7 +5841,7 @@ void DemoGame(int type)
 	if (type == 2)
 	{
 		if (eventLogging) std::cout << "  Demogame 3: Roundtable. Setting up...\n";
-		SpawnGameText("Roundable Game",
+		spawn_game_text("Roundable Game",
 			{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f },
 			{ 255, 255, 255 }, 40, 5, 3, true);
 
@@ -5852,7 +5863,7 @@ void DemoGame(int type)
 				bool repeat;
 				int  retries = 0;
 				do {
-					if (++retries > MAX_RETRIES) { EntityArr.clear(); std::cout << "Roundtable: fort placement failed!\n"; DemoGame(); return; }
+					if (++retries > MAX_RETRIES) { EntityArr.clear(); std::cout << "Roundtable: fort placement failed!\n"; generate_random_map(); return; }
 
 					float teamAng = arcRange * j + angleOffset;
 					float ang = teamAng + (float)(rand() % (int)arcRange);
@@ -5863,7 +5874,7 @@ void DemoGame(int type)
 					repeat = !mapBounds.contains(pos);
 					for (const auto& e : EntityArr)
 					{
-						if (repeat || e.ID != "fort") continue;
+						if (repeat || e.entity_type != EntityType::fort) continue;
 						float dx = e.pos.x - pos.x, dy = e.pos.y - pos.y;
 						float dist = std::sqrt(dx * dx + dy * dy);
 						if (e.team != teams[j] && dist < Fort_RANGE)        repeat = true;
@@ -5875,7 +5886,7 @@ void DemoGame(int type)
 					}
 				} while (repeat);
 
-				SpawnFort(pos, teams[j]);
+				spawn_fort(pos, teams[j]);
 			}
 		}
 
@@ -5888,10 +5899,10 @@ void DemoGame(int type)
 	// ═════════════════════════════════════════════════════════════════════════
 	if (type == 3)
 	{
-		if (GAME_MAP_WIDTH < 5000.f) { DemoGame(3); return; }
+		if (GAME_MAP_WIDTH < 5000.f) { generate_random_map(3); return; }
 
 		if (eventLogging) std::cout << "  Demogame 4: Chaos. Setting up...\n";
-		SpawnGameText("Chaos Game",
+		spawn_game_text("Chaos Game",
 			{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f },
 			{ 255, 255, 255 }, 40, 5, 3, true);
 
@@ -5899,19 +5910,21 @@ void DemoGame(int type)
 		fortsPerTeam *= std::sqrt(16 / teamCount) * 0.6f;  // integer division intentional
 		if (GAME_MAP_WIDTH == 5000.f) fortsPerTeam = (float)((rand() % 3) + 9);
 		if (GAME_MAP_WIDTH == 8000.f) fortsPerTeam = 15.f;
+		if (GAME_MAP_WIDTH == 10000.f) fortsPerTeam = 25.f;
+		if (GAME_MAP_WIDTH == 16384.f) fortsPerTeam = 50.f;
 
-		switch (rand() % 4)
+		switch (rand() % 7)
 		{
-		case 1:        doubledForts = true; break;
-		case 2:		   tripletForts = true; break;
-		case 3:        quadForts = true; break;
+		case 2: case 3:        doubledForts = true; break;
+		case 4: case 5:		   tripletForts = true; break;
+		case 6:        quadForts = true; break;
 		}
 
 		if (GAME_MAP_WIDTH >= 8000.f)
 		{
-			if (doubledForts) fortsPerTeam = 10.f;
-			if (tripletForts) fortsPerTeam = 7.f;
-			if (quadForts)    fortsPerTeam = 4.f;
+			if (doubledForts) fortsPerTeam /= 2;
+			if (tripletForts) fortsPerTeam /= 3;
+			if (quadForts)    fortsPerTeam /= 4;
 		}
 
 		std::vector<int> teams = selectTeams(teamCount);
@@ -5925,7 +5938,7 @@ void DemoGame(int type)
 				bool repeat;
 				int  retries = 0;
 				do {
-					if (++retries > MAX_RETRIES) { EntityArr.clear(); std::cout << "Chaos Map: fort placement failed!\n"; DemoGame(3); return; }
+					if (++retries > MAX_RETRIES) { EntityArr.clear(); std::cout << "Chaos Map: fort placement failed!\n"; generate_random_map(3); return; }
 
 					pos = { (float)(rand() % (int)GAME_MAP_WIDTH),
 							(float)(rand() % (int)GAME_MAP_HEIGHT) };
@@ -5936,7 +5949,7 @@ void DemoGame(int type)
 
 					for (const auto& e : EntityArr)
 					{
-						if (repeat || e.ID != "fort") continue;
+						if (repeat || e.entity_type != EntityType::fort) continue;
 						float dx = pos.x - e.pos.x, dy = pos.y - e.pos.y;
 						float dist = std::sqrt(dx * dx + dy * dy);
 						if (e.team != teams[j] && dist <= Fort_RANGE * 1.2f) repeat = true;
@@ -5944,7 +5957,7 @@ void DemoGame(int type)
 					}
 				} while (repeat);
 
-				SpawnFort(pos, teams[j]);
+				spawn_fort(pos, teams[j]);
 
 				// Spawn satellite forts clustered around the primary
 				if (doubledForts || tripletForts || quadForts)
@@ -5952,23 +5965,23 @@ void DemoGame(int type)
 					float ang = (float)(rand() % 360);
 					if (doubledForts)
 					{
-						SpawnFort({ std::cos(ang * DEG_TO_RAD) * Fort_RANGE / 2.0f + pos.x,
+						spawn_fort({ std::cos(ang * DEG_TO_RAD) * Fort_RANGE / 2.0f + pos.x,
 									std::sin(ang * DEG_TO_RAD) * Fort_RANGE / 2.0f + pos.y }, teams[j]);
 					}
 					else if (tripletForts)
 					{
-						SpawnFort({ std::cos(ang * DEG_TO_RAD) * Fort_RANGE / 2.0f + pos.x,
+						spawn_fort({ std::cos(ang * DEG_TO_RAD) * Fort_RANGE / 2.0f + pos.x,
 									std::sin(ang * DEG_TO_RAD) * Fort_RANGE / 2.0f + pos.y }, teams[j]);
-						SpawnFort({ std::cos((ang + 60.f) * DEG_TO_RAD) * Fort_RANGE / 2.0f + pos.x,
+						spawn_fort({ std::cos((ang + 60.f) * DEG_TO_RAD) * Fort_RANGE / 2.0f + pos.x,
 									std::sin((ang + 60.f) * DEG_TO_RAD) * Fort_RANGE / 2.0f + pos.y }, teams[j]);
 					}
 					else  // quadForts
 					{
-						SpawnFort({ std::cos(ang * DEG_TO_RAD) * Fort_RANGE / 1.5f + pos.x,
+						spawn_fort({ std::cos(ang * DEG_TO_RAD) * Fort_RANGE / 1.5f + pos.x,
 									std::sin(ang * DEG_TO_RAD) * Fort_RANGE / 1.5f + pos.y }, teams[j]);
-						SpawnFort({ std::cos((ang + 120.f) * DEG_TO_RAD) * Fort_RANGE / 1.5f + pos.x,
+						spawn_fort({ std::cos((ang + 120.f) * DEG_TO_RAD) * Fort_RANGE / 1.5f + pos.x,
 									std::sin((ang + 120.f) * DEG_TO_RAD) * Fort_RANGE / 1.5f + pos.y }, teams[j]);
-						SpawnFort({ std::cos((ang + 240.f) * DEG_TO_RAD) * Fort_RANGE / 1.5f + pos.x,
+						spawn_fort({ std::cos((ang + 240.f) * DEG_TO_RAD) * Fort_RANGE / 1.5f + pos.x,
 									std::sin((ang + 240.f) * DEG_TO_RAD) * Fort_RANGE / 1.5f + pos.y }, teams[j]);
 					}
 				}
@@ -5981,7 +5994,7 @@ void DemoGame(int type)
 
 	// Prime all forts to spawn tanks immediately
 	for (auto& e : EntityArr)
-		if (e.ID == "fort") e.Tank_spawn_timer = e.max_Tank_spawn_time;
+		if (e.entity_type == EntityType::fort) e.Tank_spawn_timer = e.max_Tank_spawn_time;
 
 	// Adjust extra population based on total fort count
 	int totalForts = (int)fortsPerTeam;
@@ -5999,7 +6012,7 @@ void DemoGame(int type)
 			float        fortCount = 0.f;
 
 			for (const auto& e : EntityArr)
-				if (e.ID == "fort" && e.team == team) { teamCenter += e.pos; fortCount += 1.f; }
+				if (e.entity_type == EntityType::fort && e.team == team) { teamCenter += e.pos; fortCount += 1.f; }
 
 			if (fortCount == 0.f) continue;
 			teamCenter /= fortCount;
@@ -6008,7 +6021,7 @@ void DemoGame(int type)
 			float   closestDis = 100'000.f;
 			for (auto& e : EntityArr)
 			{
-				if (e.ID != "fort" || e.team != team) continue;
+				if (e.entity_type != EntityType::fort || e.team != team) continue;
 				float d = displacement(e.pos, teamCenter);
 				if (d < closestDis) { closestDis = d; closest = &e; }
 			}
@@ -6016,18 +6029,18 @@ void DemoGame(int type)
 		}
 	}
 
-	InitTiles();
-	UpdateTiles();
-	loadGameButtons();
+	init_tiles();
+	update_tiles();
+	load_game_buttons();
 
-	SpawnGameText(std::to_string((int)GAME_MAP_WIDTH) + " x " + std::to_string((int)GAME_MAP_HEIGHT),
+	spawn_game_text(std::to_string((int)GAME_MAP_WIDTH) + " x " + std::to_string((int)GAME_MAP_HEIGHT),
 		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 50.f },
 		{ 255, 255, 255 }, 20, 5, 1, true);
 
 	if (eventLogging) std::cout << "  DEMOGAME() executed\n";
 }
 
-void updateWind() {
+void update_wind() {
 	if (!WIND_Physics) { return; }
 	float scalarWind;
 	float maxWindVel = .05 * WIND_max_speed_factor;
@@ -6047,21 +6060,21 @@ void updateWind() {
 	}
 }
 
-void loadGameButtons() {
-	SpawnButton({ 10,SCREEN_HEIGHT - 40 }, { 30,25 }, "QUIT", { 200,20,40 }, 0, 16);
-	SpawnButton({ 50, SCREEN_HEIGHT - 40 }, { 50,25 }, "RANDOM", { 20,40,200 }, 1, 16);
-	SpawnButton({ 110, SCREEN_HEIGHT - 40 }, { 50, 25 }, "DELETE", { 40,40,40 }, numberOfTeams + 2, 16);
-	SpawnButton({ 170, SCREEN_HEIGHT - 40 }, { 75, 25 }, "NULL TEAM", { 200,200,200 }, numberOfTeams + 3, 16);
-	SpawnButton({ 255, SCREEN_HEIGHT - 40 }, { 60, 25 }, "GANG UP", { 100,160,20 }, numberOfTeams + 4, 16);
+void load_game_buttons() {
+	spawn_button({ 10,SCREEN_HEIGHT - 40 }, { 30,25 }, "QUIT", { 200,20,40 }, 0, 16);
+	spawn_button({ 50, SCREEN_HEIGHT - 40 }, { 50,25 }, "RANDOM", { 20,40,200 }, 1, 16);
+	spawn_button({ 110, SCREEN_HEIGHT - 40 }, { 50, 25 }, "DELETE", { 40,40,40 }, numberOfTeams + 2, 16);
+	spawn_button({ 170, SCREEN_HEIGHT - 40 }, { 75, 25 }, "NULL TEAM", { 200,200,200 }, numberOfTeams + 3, 16);
+	spawn_button({ 255, SCREEN_HEIGHT - 40 }, { 60, 25 }, "GANG UP", { 100,160,20 }, numberOfTeams + 4, 16);
 
 
 
 	for (int i = 0; i < numberOfTeams; i++) {
-		SpawnButton({ SCREEN_WIDTH - ((i + 1) * 30), SCREEN_HEIGHT - 40 }, { 20, 25 }, std::to_string(numberOfTeams - i), colorArr[numberOfTeams - i - 1], (numberOfTeams - i - 1) + 2, 16);
+		spawn_button({ SCREEN_WIDTH - ((i + 1) * 30), SCREEN_HEIGHT - 40 }, { 20, 25 }, std::to_string(numberOfTeams - i), colorArr[numberOfTeams - i - 1], (numberOfTeams - i - 1) + 2, 16);
 	}
 }
 
-void updateStats() {
+void update_stats() {
 	std::vector <int> num, num2;
 	for (int i = 0; i < numberOfTeams; i++) {
 		num.push_back(0);
@@ -6071,7 +6084,7 @@ void updateStats() {
 	for (int team = 0; team < numberOfTeams; team++) {
 		num[team] = 0;
 		for (int i = 0; i < EntityArr.size(); i++) {
-			if (EntityArr[i].ID == "tank" && EntityArr[i].team == team && EntityArr[i].ia) {
+			if (EntityArr[i].entity_type == EntityType::tank && EntityArr[i].team == team && EntityArr[i].ia) {
 				num[team]++;
 			}
 		}
@@ -6082,7 +6095,7 @@ void updateStats() {
 		num[team] = 0;
 		num2[team] = 0;
 		for (int i = 0; i < EntityArr.size(); i++) {
-			if (EntityArr[i].ID == "fort" && EntityArr[i].team == team && EntityArr[i].ia) {
+			if (EntityArr[i].entity_type == EntityType::fort && EntityArr[i].team == team && EntityArr[i].ia) {
 				num[team]++;
 				if (EntityArr[i].Tank_spawn_timer < 0) { num2[team]++; } // Tally for Captured Forts
 			}
@@ -6094,7 +6107,7 @@ void updateStats() {
 	for (int team = 0; team < numberOfTeams; team++) {
 		num[team] = 0;
 		for (int i = 0; i < EntityArr.size(); i++) {
-			if (EntityArr[i].ID == "tank" && EntityArr[i].team == team && EntityArr[i].level != 0 && EntityArr[i].ia) {
+			if (EntityArr[i].entity_type == EntityType::tank && EntityArr[i].team == team && EntityArr[i].level != 0 && EntityArr[i].ia) {
 				num[team]++;
 			}
 		}
@@ -6104,7 +6117,7 @@ void updateStats() {
 	for (int team = 0; team < numberOfTeams; team++) {
 		num[team] = 0;
 		for (int i = 0; i < EntityArr.size(); i++) {
-			if (EntityArr[i].ID == "fort" && EntityArr[i].team == team && EntityArr[i].fort_level != 0 && EntityArr[i].ia) {
+			if (EntityArr[i].entity_type == EntityType::fort && EntityArr[i].team == team && EntityArr[i].fort_level != 0 && EntityArr[i].ia) {
 				num[team]++;
 			}
 		}
@@ -6116,7 +6129,7 @@ void updateStats() {
 
 }
 
-void saveJSONData()
+void save_json_data()
 {
 	json jsonArray;
 	std::string fileName;
@@ -6272,7 +6285,7 @@ void saveJSONData()
 }
 
 
-sf::Vector2f scaleVector(sf::Vector2f& vector, float magnitude) {
+sf::Vector2f scale_vector(sf::Vector2f& vector, float magnitude) {
 	sf::Vector2f newVector = { 0,0 };
 	float Old_magnitude = std::sqrt(vector.x * vector.x + vector.y * vector.y);
 	return { vector.x * magnitude / Old_magnitude, vector.y * magnitude / Old_magnitude };
@@ -6284,7 +6297,7 @@ float displacement(const sf::Vector2f& vec_1, const sf::Vector2f& vec_2) {
 }
 
 
-void saveGameState(const std::string& filename) {
+void save_game_state(const std::string& filename) {
 	json j;
 
 	// Iterate over each Entity in the global EntityArr vector
@@ -6292,11 +6305,12 @@ void saveGameState(const std::string& filename) {
 		json entityJson;
 
 		// Save the necessary fields; modify as needed:
-		entityJson["ID"] = entity.ID;
+		entityJson["entity_type"] = entity.entity_type;
 		entityJson["unique_id"] = entity.unique_id;
+		entityJson["entity_index"] = entity.entity_index;
 		entityJson["team"] = entity.team;
-		entityJson["hp"] = entity.hp;
-		entityJson["max_hp"] = entity.max_hp;
+		entityJson["hitpoints"] = entity.hitpoints;
+		entityJson["max_hitpoints"] = entity.max_hitpoints;
 		entityJson["ang"] = entity.ang;
 
 		// Save position, velocity, and acceleration as arrays
@@ -6322,7 +6336,7 @@ void saveGameState(const std::string& filename) {
 
 
 
-std::string getDateString() {
+std::string get_date_string() {
 	std::time_t now = std::time(nullptr);
 	std::tm localTime;
 	localtime_s(&localTime, &now);  // Use localtime_s instead of localtime
@@ -6334,7 +6348,7 @@ std::string getDateString() {
 	return oss.str();
 }
 
-std::string getTimeString() {
+std::string get_time_string() {
 	std::time_t now = std::time(nullptr);
 	std::tm localTime;
 	localtime_s(&localTime, &now);  // Use localtime_s here as well
@@ -6348,7 +6362,7 @@ std::string getTimeString() {
 
 
 
-std::string OpenFileDialog(const char* filter, HWND owner) {
+std::string open_file_dialog(const char* filter, HWND owner) {
 	OPENFILENAMEA ofn;       // Common dialog box structure
 	char fileName[MAX_PATH] = ""; // Buffer for file name
 
@@ -6372,7 +6386,7 @@ std::string OpenFileDialog(const char* filter, HWND owner) {
 
 
 
-std::vector<Tile*> getTileNeighbors(Tile& tile) {
+std::vector<Tile*> get_tile_neighbours(Tile& tile) {
 	static const int even_offsets[6][2] = { {-1,-1}, {0,-1}, {1,0}, {0,1}, {-1,1}, {-1,0} };
 	static const int odd_offsets[6][2] = { {0,-1}, {1,-1}, {1,0}, {1,1}, {0,1}, {-1,0} };
 
@@ -6399,7 +6413,7 @@ std::vector<Tile*> getTileNeighbors(Tile& tile) {
 	return neighbors;
 }
 
-void calculateTilePopulation() {
+void update_tile_pop() {
 	int x = 0;
 	for (int i = 0; i < TileArr.size(); i++) {
 		for (int j = 0; j < TileArr[i].size(); j++) {
@@ -6419,7 +6433,7 @@ bool enemies(int my_team, int their_team) {
 	return false; // Not enemies
 }
 
-std::string roundToDecimalPlaces(double value, int n) {
+std::string round_to_decimal_places(double value, int n) {
 	if (!std::isfinite(value)) {
 		return std::to_string(value);
 	}
@@ -6485,7 +6499,7 @@ std::string roundToDecimalPlaces(double value, int n) {
 
 
 
-void drawLogs() {
+void draw_logs() {
 	constexpr size_t MAX_LOG_SIZE = 33; // Set your desired maximum size
 	// Remove oldest entries if vector is too big
 	if (GameLogArr.size() > MAX_LOG_SIZE) {
@@ -6493,13 +6507,13 @@ void drawLogs() {
 	}
 	// (Optional) Draw or process logs here
 	for (int i = 0; i < GameLogArr.size(); i++) {
-		renderFormattedText(window, { 1750.f, i * 15.f + 275.f }, GameLogArr[i], Font_2, 12, { 255,255,255,128 }, 0, { 0,0,0,0 }, false);
+		render_formatted_text(window, { 1750.f, i * 15.f + 275.f }, GameLogArr[i], Font_2, 12, { 255,255,255,128 }, 0, { 0,0,0,0 }, false);
 	}
 }
 
 
 
-static sf::Color parseHexColor(const std::string& spec, const sf::Color& fallback, int alpha)
+static sf::Color hex_to_rgb(const std::string& spec, const sf::Color& fallback, int alpha)
 {
 	std::string s = spec;
 	if (!s.empty() && s[0] == '#') s.erase(0, 1);
@@ -6526,7 +6540,7 @@ static sf::Color parseHexColor(const std::string& spec, const sf::Color& fallbac
 	}
 }
 
-void renderFormattedText(sf::RenderWindow& surface,
+void render_formatted_text(sf::RenderWindow& surface,
 	const sf::Vector2f& pos,
 	const std::string& Text,
 	const sf::Font& font,
@@ -6557,7 +6571,7 @@ void renderFormattedText(sf::RenderWindow& surface,
 						buffer.clear();
 					}
 					// parse color; fallback = fill_col
-					sf::Color col = parseHexColor(spec, fill_col, fill_col.a);
+					sf::Color col = hex_to_rgb(spec, fill_col, fill_col.a);
 					segments.emplace_back(content, col);
 					i = bracketClose + 1;
 					continue;
@@ -6625,7 +6639,7 @@ void renderFormattedText(sf::RenderWindow& surface,
 }
 
 
-std::string colorToHex(const sf::Color& color)
+std::string rgb_to_hex(const sf::Color& color)
 {
 	std::stringstream ss;
 	ss << "#"
@@ -6637,7 +6651,7 @@ std::string colorToHex(const sf::Color& color)
 }
 
 
-sf::Vector2f calculateInterceptPoint(
+sf::Vector2f intercept_point(
 	const sf::Vector2f& shooterPos,
 	const sf::Vector2f& targetPos,
 	const sf::Vector2f& targetVel,
@@ -6681,7 +6695,7 @@ sf::Vector2f calculateInterceptPoint(
 }
 
 
-double deltaAngle(double a, double b) {
+double delta_angle(double a, double b) {
 	double delta = b - a;
 	delta = std::fmod(delta, 360.0);
 	if (delta < -180.0) {
@@ -6694,7 +6708,7 @@ double deltaAngle(double a, double b) {
 }
 
 
-int ActiveEntityPop() {
+int active_entity_pop() {
 	int pop = 0;
 	for (auto& entity : EntityArr) {
 		if (entity.ia) { pop++; }
