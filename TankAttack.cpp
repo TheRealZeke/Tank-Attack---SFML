@@ -5654,15 +5654,19 @@ void generate_random_map(int type)
 	// ── Shared setup ─────────────────────────────────────────────────────────
 	constexpr int   MAX_RETRIES = 1000;
 	constexpr float DEG_TO_RAD = (float)(3.141592654 / 180.0);
-	const std::vector<float> MAP_SIZES = { 2500.f, 3200.f, 4000.f, 5000.f, 8000.f, 10'000.f, 16'384.f};
-	const std::vector<float> FORT_MULTIPLIERS = { 0.375f, 0.6144f, 0.96f, 1.5f, 2.5f , 3.3f, 6.f};
+	const std::vector<float> MAP_SIZES = { 800.f, 1600.f, 2400.f, 3200.f, 4000.f, 4800.f, 5600.f, 6400.f, 7200.f, 8000.f, 9600.f, 12000.f};
+	//const std::vector<float> FORT_MULTIPLIERS = { 0.375f, 0.6144f, 0.96f, 1.5f, 1.6f, 2.5f , 3.3f, 6.f};
+	std::vector<float> FORT_MULTIPLIERS;
+	for (int i = 0; i < MAP_SIZES.size(); i++) {
+		FORT_MULTIPLIERS.push_back((MAP_SIZES[i] * MAP_SIZES[i] * 2.5f) / (8000.f * 8000.f));
+	}
 	int sizeIdx = rand() % (int)MAP_SIZES.size();
 
 	GAME_MAP_WIDTH = MAP_SIZES[sizeIdx];
 	GAME_MAP_HEIGHT = MAP_SIZES[sizeIdx];
 	sf::FloatRect mapBounds(0.f, 0.f, GAME_MAP_WIDTH, GAME_MAP_HEIGHT);
 
-	float fortsPerTeam = ((rand() % 13) + 2) * FORT_MULTIPLIERS[sizeIdx];
+	float forts_per_team = ((rand() % 13) + 2) * FORT_MULTIPLIERS[sizeIdx];
 	bool  doubledForts = false, tripletForts = false, quadForts = false;
 	float distFactor = 1.0f;
 
@@ -5694,6 +5698,7 @@ void generate_random_map(int type)
 			}
 		};
 
+	
 
 	// ═════════════════════════════════════════════════════════════════════════
 	// TYPE 0  ──  Random Map
@@ -5706,13 +5711,13 @@ void generate_random_map(int type)
 			{ 255, 255, 255 }, 40, 5, 2, true);
 
 		int teamCount = (rand() % (numberOfTeams - 1)) + 2;
-		fortsPerTeam *= std::sqrt(16 / teamCount);  // integer division intentional
+		forts_per_team *= std::sqrt(16 / teamCount);  // integer division intentional
 
 		switch (rand() % 7)
 		{
-		case 2: case 3: doubledForts = true; fortsPerTeam /= 2; distFactor = std::sqrt(2.0f); break;
-		case 4: case 5: tripletForts = true; fortsPerTeam /= 3; distFactor = std::sqrt(3.0f); break;
-		case 6: quadForts = true; fortsPerTeam /= 4; distFactor = std::sqrt(4.0f); break;
+		case 2: case 3: doubledForts = true; forts_per_team /= 2; distFactor = std::sqrt(2.0f); break;
+		case 4: case 5: tripletForts = true; forts_per_team /= 3; distFactor = std::sqrt(3.0f); break;
+		case 6: quadForts = true; forts_per_team /= 4; distFactor = std::sqrt(4.0f); break;
 		}
 
 		std::vector<int>          teams = selectTeams(teamCount);
@@ -5738,7 +5743,7 @@ void generate_random_map(int type)
 		}
 
 		// Place forts scattered around each team's anchor
-		for (int j = 0; j < (int)fortsPerTeam; j++)
+		for (int j = 0; j < (int)forts_per_team; j++)
 		{
 			int retries = 0;
 			for (int i = 0; i < teamCount; i++)
@@ -5784,13 +5789,13 @@ void generate_random_map(int type)
 			{ 255, 255, 255 }, 40, 5, 3, true);
 
 		constexpr int TEAM_COUNT = 2;
-		fortsPerTeam *= std::sqrt(16 / TEAM_COUNT) * 2.0f;  // integer division intentional
+		forts_per_team *= std::sqrt(16 / TEAM_COUNT) * 2.0f;  // integer division intentional
 
 		switch (rand() % 7)
 		{
-		case 2: case 3: doubledForts = true; fortsPerTeam /= 2; distFactor = 2.0f; break;
-		case 4: case 5: tripletForts = true; fortsPerTeam /= 3; distFactor = 3.0f; break;
-		case 6: quadForts = true; fortsPerTeam /= 4; distFactor = 4.0f; break;
+		case 2: case 3: doubledForts = true; forts_per_team /= 2; distFactor = 2.0f; break;
+		case 4: case 5: tripletForts = true; forts_per_team /= 3; distFactor = 3.0f; break;
+		case 6: quadForts = true; forts_per_team /= 4; distFactor = 4.0f; break;
 		}
 
 		std::vector<int> teams = selectTeams(TEAM_COUNT);
@@ -5800,7 +5805,7 @@ void generate_random_map(int type)
 		float maxDis = std::sqrt(std::pow(GAME_MAP_WIDTH / 2.0f, 2.0f)
 			+ std::pow(GAME_MAP_HEIGHT / 2.0f, 2.0f));
 
-		for (int i = 0; i < (int)fortsPerTeam; i++)
+		for (int i = 0; i < (int)forts_per_team; i++)
 		{
 			for (int j = 0; j < TEAM_COUNT; j++)
 			{
@@ -5846,7 +5851,7 @@ void generate_random_map(int type)
 			{ 255, 255, 255 }, 40, 5, 3, true);
 
 		int          teamCount = (rand() % (numberOfTeams - 2)) + 3;
-		fortsPerTeam *= std::sqrt(16 / teamCount);  // integer division intentional
+		forts_per_team *= std::sqrt(16 / teamCount);  // integer division intentional
 		float        arcRange = 360.0f / teamCount;
 		float        angleOffset = (float)(rand() % 360);
 		float        maxDis = std::sqrt(std::pow(GAME_MAP_WIDTH / 2.0f, 2.0f)
@@ -5855,7 +5860,7 @@ void generate_random_map(int type)
 
 		std::vector<int> teams = selectTeams(teamCount);
 
-		for (int i = 0; i < (int)fortsPerTeam; i++)
+		for (int i = 0; i < (int)forts_per_team; i++)
 		{
 			for (int j = 0; j < teamCount; j++)
 			{
@@ -5899,7 +5904,7 @@ void generate_random_map(int type)
 	// ═════════════════════════════════════════════════════════════════════════
 	if (type == 3)
 	{
-		if (GAME_MAP_WIDTH < 5000.f) { generate_random_map(3); return; }
+		//if (GAME_MAP_WIDTH < 5000.f) { generate_random_map(3); return; }
 
 		if (eventLogging) std::cout << "  Demogame 4: Chaos. Setting up...\n";
 		spawn_game_text("Chaos Game",
@@ -5907,11 +5912,13 @@ void generate_random_map(int type)
 			{ 255, 255, 255 }, 40, 5, 3, true);
 
 		int teamCount = numberOfTeams;
-		fortsPerTeam *= std::sqrt(16 / teamCount) * 0.6f;  // integer division intentional
-		if (GAME_MAP_WIDTH == 5000.f) fortsPerTeam = (float)((rand() % 3) + 9);
-		if (GAME_MAP_WIDTH == 8000.f) fortsPerTeam = 15.f;
-		if (GAME_MAP_WIDTH == 10000.f) fortsPerTeam = 25.f;
-		if (GAME_MAP_WIDTH == 16384.f) fortsPerTeam = 50.f;
+		forts_per_team *= std::sqrt(16 / teamCount) * 0.6f;  // integer division intentional
+		//if (GAME_MAP_WIDTH == 5000.f) forts_per_team = (float)((rand() % 3) + 9);
+		//if (GAME_MAP_WIDTH == 8000.f) forts_per_team = 15.f;
+		//if (GAME_MAP_WIDTH == 10000.f) forts_per_team = 25.f;
+		//if (GAME_MAP_WIDTH == 16384.f) forts_per_team = 50.f;
+		forts_per_team = (GAME_MAP_WIDTH * GAME_MAP_WIDTH * 12.f) / (8000.f * 8000.f);
+		
 
 		switch (rand() % 7)
 		{
@@ -5922,15 +5929,15 @@ void generate_random_map(int type)
 
 		if (GAME_MAP_WIDTH >= 8000.f)
 		{
-			if (doubledForts) fortsPerTeam /= 2;
-			if (tripletForts) fortsPerTeam /= 3;
-			if (quadForts)    fortsPerTeam /= 4;
+			if (doubledForts) forts_per_team /= 2;
+			if (tripletForts) forts_per_team /= 3;
+			if (quadForts)    forts_per_team /= 4;
 		}
 
 		std::vector<int> teams = selectTeams(teamCount);
 		sf::Vector2f     mapCenter = { GAME_MAP_WIDTH / 2.0f, GAME_MAP_HEIGHT / 2.0f };
 
-		for (int i = 0; i < (int)fortsPerTeam; i++)
+		for (int i = 0; i < (int)forts_per_team; i++)
 		{
 			for (int j = 0; j < teamCount; j++)
 			{
@@ -5997,7 +6004,7 @@ void generate_random_map(int type)
 		if (e.entity_type == EntityType::fort) e.Tank_spawn_timer = e.max_Tank_spawn_time;
 
 	// Adjust extra population based on total fort count
-	int totalForts = (int)fortsPerTeam;
+	int totalForts = (int)forts_per_team;
 	if (doubledForts) totalForts *= 2;
 	if (tripletForts) totalForts *= 3;
 	if (quadForts)    totalForts *= 4;
